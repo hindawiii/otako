@@ -1,0 +1,2881 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>أوتاكو جو - معاينة نظام غرف التعلم + النطق الصوتي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --primary: #FF6B6B; --primary-light: #FF8E8E; --secondary: #4ECDC4; --accent: #FFE66D;
+            --dark: #0a0a1a; --darker: #1a1a3e; --card: #16213E; --card-light: #1e2d4d;
+            --text: #FFFFFF; --text-muted: #a0a0c0; --border: rgba(255,255,255,0.08);
+            --japanese: #E74C3C; --english: #3498DB; --arabic: #27AE60;
+            --success: #2ECC71; --danger: #E74C3C; --warning: #F39C12;
+        }
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: linear-gradient(180deg, var(--dark) 0%, var(--darker) 50%, #0d0d2b 100%);
+            min-height: 100vh; color: var(--text); overflow-x: hidden; padding-bottom: 20px;
+        }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
+        .star { position: absolute; width: 2px; height: 2px; background: white; border-radius: 50%; animation: twinkle var(--duration) ease-in-out infinite; opacity: 0; }
+        @keyframes twinkle { 0%,100% { opacity: 0; transform: scale(0.5); } 50% { opacity: var(--opacity); transform: scale(1); } }
+
+        .top-bar { position: sticky; top: 0; z-index: 100; background: rgba(10,10,26,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+        .top-bar .logo { font-size: 1.3rem; font-weight: 900; background: linear-gradient(135deg, var(--primary), var(--accent), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .top-bar .preview-badge { background: rgba(255,230,109,0.15); color: var(--accent); padding: 4px 12px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; }
+
+        .main-content { position: relative; z-index: 1; padding: 16px; max-width: 600px; margin: 0 auto; }
+
+        /* اختيار الغرفة */
+        .room-selector { display: flex; gap: 10px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .room-selector::-webkit-scrollbar { display: none; }
+        .room-btn { flex: 1; min-width: 0; padding: 14px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 16px; color: var(--text-muted); font-family: 'Tajawal', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+        .room-btn .room-flag { font-size: 1.8rem; }
+        .room-btn.active-jp { background: linear-gradient(135deg, rgba(231,76,60,0.2), rgba(231,76,60,0.05)); border-color: rgba(231,76,60,0.3); color: var(--japanese); box-shadow: 0 4px 15px rgba(231,76,60,0.2); }
+        .room-btn.active-en { background: linear-gradient(135deg, rgba(52,152,219,0.2), rgba(52,152,219,0.05)); border-color: rgba(52,152,219,0.3); color: var(--english); box-shadow: 0 4px 15px rgba(52,152,219,0.2); }
+        .room-btn.active-ar { background: linear-gradient(135deg, rgba(39,174,96,0.2), rgba(39,174,96,0.05)); border-color: rgba(39,174,96,0.3); color: var(--arabic); box-shadow: 0 4px 15px rgba(39,174,96,0.2); }
+        .room-btn:hover:not(.active-jp):not(.active-en):not(.active-ar) { background: rgba(255,255,255,0.06); color: var(--text); }
+
+        /* محتوى الغرفة */
+        .room-view { display: none; }
+        .room-view.active { display: block; animation: fadeInUp 0.4s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* معلومات الغرفة */
+        .room-header-card { border-radius: 20px; padding: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; }
+        .room-header-card.jp { background: linear-gradient(145deg, rgba(231,76,60,0.15), rgba(231,76,60,0.05)); border: 1px solid rgba(231,76,60,0.15); }
+        .room-header-card.en { background: linear-gradient(145deg, rgba(52,152,219,0.15), rgba(52,152,219,0.05)); border: 1px solid rgba(52,152,219,0.15); }
+        .room-header-card.ar { background: linear-gradient(145deg, rgba(39,174,96,0.15), rgba(39,174,96,0.05)); border: 1px solid rgba(39,174,96,0.15); }
+        .room-header-card .room-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; flex-shrink: 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .room-header-card.jp .room-icon { background: linear-gradient(135deg, var(--japanese), #C0392B); }
+        .room-header-card.en .room-icon { background: linear-gradient(135deg, var(--english), #2980B9); }
+        .room-header-card.ar .room-icon { background: linear-gradient(135deg, var(--arabic), #2ECC71); }
+        .room-header-card .room-info h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; }
+        .room-header-card .room-info p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+        .room-header-card .room-stats { margin-right: auto; text-align: center; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 8px 14px; }
+        .room-header-card .room-stats .stat-num { font-size: 1.3rem; font-weight: 900; }
+        .room-header-card.jp .room-stats .stat-num { color: var(--japanese); }
+        .room-header-card.en .room-stats .stat-num { color: var(--english); }
+        .room-header-card.ar .room-stats .stat-num { color: var(--arabic); }
+        .room-header-card .room-stats .stat-label { font-size: 0.7rem; color: var(--text-muted); }
+
+        /* تبويبات الأركان */
+        .corner-tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .corner-tabs::-webkit-scrollbar { display: none; }
+        .corner-tab { flex: 1; min-width: 0; padding: 10px 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 14px; color: var(--text-muted); font-family: 'Tajawal', sans-serif; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; position: relative; }
+        .corner-tab .tab-icon { font-size: 1.1rem; }
+        .corner-tab.active-jp { background: linear-gradient(135deg, var(--japanese), #C0392B); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(231,76,60,0.3); }
+        .corner-tab.active-en { background: linear-gradient(135deg, var(--english), #2980B9); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(52,152,219,0.3); }
+        .corner-tab.active-ar { background: linear-gradient(135deg, var(--arabic), #2ECC71); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(39,174,96,0.3); }
+        .corner-tab:hover:not(.active-jp):not(.active-en):not(.active-ar) { background: rgba(255,255,255,0.08); color: var(--text); }
+
+        /* محتوى الأركان */
+        .corner-content { display: none; }
+        .corner-content.active { display: block; animation: fadeInUp 0.4s ease; }
+
+        /* بطاقة يومية */
+        .daily-card { border-radius: 20px; padding: 18px; margin-bottom: 14px; position: relative; overflow: hidden; }
+        .daily-card.jp { background: linear-gradient(145deg, rgba(231,76,60,0.08), rgba(231,76,60,0.02)); border: 1px solid rgba(231,76,60,0.1); }
+        .daily-card.en { background: linear-gradient(145deg, rgba(52,152,219,0.08), rgba(52,152,219,0.02)); border: 1px solid rgba(52,152,219,0.1); }
+        .daily-card.ar { background: linear-gradient(145deg, rgba(39,174,96,0.08), rgba(39,174,96,0.02)); border: 1px solid rgba(39,174,96,0.1); }
+        .daily-card::before { content: ''; position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); pointer-events: none; }
+        .daily-card .daily-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .daily-card .daily-header h3 { font-size: 1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        .daily-card .daily-header .date-tag { padding: 4px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; }
+        .daily-card.jp .daily-header .date-tag { background: rgba(231,76,60,0.15); color: var(--japanese); }
+        .daily-card.en .daily-header .date-tag { background: rgba(52,152,219,0.15); color: var(--english); }
+        .daily-card.ar .daily-header .date-tag { background: rgba(39,174,96,0.15); color: var(--arabic); }
+
+        /* شبكة الأحرف */
+        .chars-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 10px; }
+        .char-item { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 16px; padding: 14px 8px; text-align: center; cursor: pointer; transition: all 0.3s ease; position: relative; }
+        .char-item:hover { transform: translateY(-3px); }
+        .char-item.jp:hover { background: rgba(231,76,60,0.1); border-color: rgba(231,76,60,0.3); }
+        .char-item.en:hover { background: rgba(52,152,219,0.1); border-color: rgba(52,152,219,0.3); }
+        .char-item.ar:hover { background: rgba(39,174,96,0.1); border-color: rgba(39,174,96,0.3); }
+        .char-item .char-symbol { font-size: 1.8rem; font-weight: 900; margin-bottom: 4px; }
+        .char-item.jp .char-symbol { color: var(--japanese); }
+        .char-item.en .char-symbol { color: var(--english); }
+        .char-item.ar .char-symbol { color: var(--arabic); }
+        .char-item .char-reading { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; }
+        .char-item .char-meaning { font-size: 0.7rem; color: var(--accent); font-weight: 600; }
+        .char-item .char-type { position: absolute; top: 6px; left: 6px; font-size: 0.6rem; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
+        .char-item.jp .char-type { background: rgba(231,76,60,0.2); color: var(--japanese); }
+        .char-item.en .char-type { background: rgba(52,152,219,0.2); color: var(--english); }
+        .char-item.ar .char-type { background: rgba(39,174,96,0.2); color: var(--arabic); }
+
+        /* أزرار النطق */
+        .sound-controls { display: flex; gap: 6px; margin-top: 8px; justify-content: center; }
+        .sound-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; color: var(--text-muted); font-family: 'Tajawal', sans-serif; font-size: 0.7rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 4px; }
+        .sound-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+        .sound-btn.jp:hover { border-color: var(--japanese); color: var(--japanese); }
+        .sound-btn.en:hover { border-color: var(--english); color: var(--english); }
+        .sound-btn.ar:hover { border-color: var(--arabic); color: var(--arabic); }
+        .sound-btn.playing { animation: pulse-btn 1s infinite; }
+        @keyframes pulse-btn { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+        /* قائمة التحيات */
+        .greetings-list { display: flex; flex-direction: column; gap: 10px; }
+        .greeting-item { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.3s ease; }
+        .greeting-item:hover { transform: translateX(-4px); }
+        .greeting-item.jp:hover { background: rgba(231,76,60,0.08); border-color: rgba(231,76,60,0.2); }
+        .greeting-item.en:hover { background: rgba(52,152,219,0.08); border-color: rgba(52,152,219,0.2); }
+        .greeting-item.ar:hover { background: rgba(39,174,96,0.08); border-color: rgba(39,174,96,0.2); }
+        .greeting-item .greeting-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; }
+        .greeting-item.jp .greeting-icon { background: linear-gradient(135deg, rgba(231,76,60,0.2), rgba(231,76,60,0.05)); }
+        .greeting-item.en .greeting-icon { background: linear-gradient(135deg, rgba(52,152,219,0.2), rgba(52,152,219,0.05)); }
+        .greeting-item.ar .greeting-icon { background: linear-gradient(135deg, rgba(39,174,96,0.2), rgba(39,174,96,0.05)); }
+        .greeting-item .greeting-content { flex: 1; }
+        .greeting-item .greeting-content .greeting-target { font-size: 1.1rem; font-weight: 800; margin-bottom: 2px; }
+        .greeting-item.jp .greeting-content .greeting-target { color: var(--japanese); }
+        .greeting-item.en .greeting-content .greeting-target { color: var(--english); }
+        .greeting-item.ar .greeting-content .greeting-target { color: var(--arabic); }
+        .greeting-item .greeting-content .greeting-reading { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2px; }
+        .greeting-item .greeting-content .greeting-ar { font-size: 0.85rem; color: var(--text); }
+        .greeting-item .greeting-play { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; flex-shrink: 0; font-size: 1rem; }
+        .greeting-item.jp .greeting-play { background: rgba(231,76,60,0.15); border: 1px solid rgba(231,76,60,0.3); color: var(--japanese); }
+        .greeting-item.en .greeting-play { background: rgba(52,152,219,0.15); border: 1px solid rgba(52,152,219,0.3); color: var(--english); }
+        .greeting-item.ar .greeting-play { background: rgba(39,174,96,0.15); border: 1px solid rgba(39,174,96,0.3); color: var(--arabic); }
+        .greeting-item .greeting-play:hover { transform: scale(1.1); color: white; }
+        .greeting-item.jp .greeting-play:hover { background: var(--japanese); }
+        .greeting-item.en .greeting-play:hover { background: var(--english); }
+        .greeting-item.ar .greeting-play:hover { background: var(--arabic); }
+        .greeting-item .greeting-play.playing { animation: pulse-btn 0.8s infinite; }
+
+        /* بطاقة الجملة */
+        .sentence-card { background: rgba(22,33,62,0.6); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .sentence-card:hover { transform: translateY(-2px); }
+        .sentence-card.jp:hover { border-color: rgba(231,76,60,0.2); }
+        .sentence-card.en:hover { border-color: rgba(52,152,219,0.2); }
+        .sentence-card.ar:hover { border-color: rgba(39,174,96,0.2); }
+        .sentence-card .sentence-level { position: absolute; top: 12px; left: 12px; padding: 3px 10px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; }
+        .sentence-card.jp .sentence-level { background: rgba(231,76,60,0.15); color: var(--japanese); }
+        .sentence-card.en .sentence-level { background: rgba(52,152,219,0.15); color: var(--english); }
+        .sentence-card.ar .sentence-level { background: rgba(39,174,96,0.15); color: var(--arabic); }
+        .sentence-card .sentence-target { font-size: 1.15rem; font-weight: 800; margin-bottom: 6px; padding-top: 8px; }
+        .sentence-card.jp .sentence-target { color: var(--japanese); }
+        .sentence-card.en .sentence-target { color: var(--english); }
+        .sentence-card.ar .sentence-target { color: var(--arabic); }
+        .sentence-card .sentence-reading { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; }
+        .sentence-card .sentence-ar { font-size: 0.9rem; color: var(--text); line-height: 1.5; }
+        .sentence-card .sentence-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+        .sentence-card .sentence-tags span { background: rgba(255,255,255,0.05); padding: 3px 10px; border-radius: 8px; font-size: 0.7rem; color: var(--text-muted); }
+        .sentence-card .sentence-sound { display: flex; gap: 6px; margin-top: 10px; }
+        .sentence-card .sentence-sound button { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; color: var(--text-muted); font-family: 'Tajawal', sans-serif; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 4px; }
+        .sentence-card .sentence-sound button:hover { color: var(--text); }
+        .sentence-card.jp .sentence-sound button:hover { border-color: var(--japanese); color: var(--japanese); }
+        .sentence-card.en .sentence-sound button:hover { border-color: var(--english); color: var(--english); }
+        .sentence-card.ar .sentence-sound button:hover { border-color: var(--arabic); color: var(--arabic); }
+
+        /* محادثة */
+        .conversation-card { background: rgba(22,33,62,0.6); border: 1px solid var(--border); border-radius: 20px; padding: 16px; margin-bottom: 12px; }
+        .conversation-card .conv-title { font-size: 0.95rem; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .conversation-card .conv-title i { color: var(--secondary); }
+        .chat-bubble { display: flex; gap: 10px; margin-bottom: 10px; }
+        .chat-bubble.me { flex-direction: row-reverse; }
+        .chat-bubble .bubble-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+        .chat-bubble .bubble-content { background: rgba(0,0,0,0.2); border-radius: 16px; padding: 10px 14px; max-width: 75%; position: relative; }
+        .chat-bubble.me .bubble-content { background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.08); }
+        .chat-bubble .bubble-content .bubble-target { font-size: 0.95rem; font-weight: 700; margin-bottom: 3px; }
+        .chat-bubble.jp .bubble-content .bubble-target { color: var(--japanese); }
+        .chat-bubble.en .bubble-content .bubble-target { color: var(--english); }
+        .chat-bubble.ar .bubble-content .bubble-target { color: var(--arabic); }
+        .chat-bubble .bubble-content .bubble-reading { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 3px; }
+        .chat-bubble .bubble-content .bubble-ar { font-size: 0.82rem; color: var(--text); }
+        .chat-bubble .bubble-content .bubble-sound { position: absolute; top: 8px; left: 8px; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; font-size: 0.8rem; opacity: 0; }
+        .chat-bubble .bubble-content:hover .bubble-sound { opacity: 1; }
+        .chat-bubble.jp .bubble-content .bubble-sound { background: rgba(231,76,60,0.2); color: var(--japanese); }
+        .chat-bubble.en .bubble-content .bubble-sound { background: rgba(52,152,219,0.2); color: var(--english); }
+        .chat-bubble.ar .bubble-content .bubble-sound { background: rgba(39,174,96,0.2); color: var(--arabic); }
+        .chat-bubble .bubble-content .bubble-sound:hover { transform: scale(1.1); color: white; }
+        .chat-bubble.jp .bubble-content .bubble-sound:hover { background: var(--japanese); }
+        .chat-bubble.en .bubble-content .bubble-sound:hover { background: var(--english); }
+        .chat-bubble.ar .bubble-content .bubble-sound:hover { background: var(--arabic); }
+
+        /* اختصارات */
+        .shortcut-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .shortcut-item { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 14px; padding: 12px; text-align: center; transition: all 0.3s ease; }
+        .shortcut-item:hover { background: rgba(78,205,196,0.08); border-color: rgba(78,205,196,0.2); }
+        .shortcut-item .short-form { font-size: 1.1rem; font-weight: 800; color: var(--secondary); margin-bottom: 4px; }
+        .shortcut-item .short-full { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+        .shortcut-item .short-meaning { font-size: 0.75rem; color: var(--accent); font-weight: 600; }
+
+        /* مستوى */
+        .level-card { border-radius: 20px; padding: 18px; margin-bottom: 14px; text-align: center; }
+        .level-card.jp { background: linear-gradient(145deg, rgba(231,76,60,0.08), rgba(231,76,60,0.02)); border: 1px solid rgba(231,76,60,0.12); }
+        .level-card.en { background: linear-gradient(145deg, rgba(52,152,219,0.08), rgba(52,152,219,0.02)); border: 1px solid rgba(52,152,219,0.12); }
+        .level-card.ar { background: linear-gradient(145deg, rgba(39,174,96,0.08), rgba(39,174,96,0.02)); border: 1px solid rgba(39,174,96,0.12); }
+        .level-card .level-icon { font-size: 2.5rem; margin-bottom: 8px; }
+        .level-card .level-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; }
+        .level-card .level-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; }
+        .level-card .progress-bar { width: 100%; height: 10px; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+        .level-card .progress-bar .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+        .level-card.jp .progress-bar .progress-fill { background: linear-gradient(90deg, var(--accent), var(--japanese)); }
+        .level-card.en .progress-bar .progress-fill { background: linear-gradient(90deg, var(--accent), var(--english)); }
+        .level-card.ar .progress-bar .progress-fill { background: linear-gradient(90deg, var(--accent), var(--arabic)); }
+        .level-card .progress-text { font-size: 0.8rem; color: var(--text-muted); }
+
+        /* اختبار */
+        .quiz-card { background: rgba(22,33,62,0.6); border: 1px solid var(--border); border-radius: 20px; padding: 18px; margin-bottom: 12px; }
+        .quiz-card .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .quiz-card .quiz-header h4 { font-size: 1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        .quiz-card .quiz-header .quiz-counter { background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 10px; font-size: 0.8rem; color: var(--text-muted); }
+        .quiz-card .quiz-question { font-size: 1.2rem; font-weight: 800; text-align: center; margin-bottom: 16px; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 16px; }
+        .quiz-card.jp .quiz-question { color: var(--japanese); }
+        .quiz-card.en .quiz-question { color: var(--english); }
+        .quiz-card.ar .quiz-question { color: var(--arabic); }
+        .quiz-card .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+        .quiz-card .quiz-options button { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 14px; padding: 14px; color: var(--text); font-family: 'Tajawal', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-align: right; }
+        .quiz-card .quiz-options button:hover { background: rgba(255,255,255,0.06); }
+        .quiz-card.jp .quiz-options button:hover { border-color: rgba(231,76,60,0.3); }
+        .quiz-card.en .quiz-options button:hover { border-color: rgba(52,152,219,0.3); }
+        .quiz-card.ar .quiz-options button:hover { border-color: rgba(39,174,96,0.3); }
+        .quiz-card .quiz-options button.correct { background: rgba(46,204,113,0.15); border-color: var(--success); color: var(--success); }
+        .quiz-card .quiz-options button.wrong { background: rgba(231,76,60,0.15); border-color: var(--danger); color: var(--danger); }
+        .quiz-card .quiz-sound-btn { display: flex; justify-content: center; margin-bottom: 12px; }
+        .quiz-card .quiz-sound-btn button { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 8px 16px; color: var(--text-muted); font-family: 'Tajawal', sans-serif; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 6px; }
+        .quiz-card .quiz-sound-btn button:hover { color: var(--text); }
+        .quiz-card.jp .quiz-sound-btn button:hover { border-color: var(--japanese); color: var(--japanese); }
+        .quiz-card.en .quiz-sound-btn button:hover { border-color: var(--english); color: var(--english); }
+        .quiz-card.ar .quiz-sound-btn button:hover { border-color: var(--arabic); color: var(--arabic); }
+
+        /* أخبار */
+        .news-item { background: rgba(22,33,62,0.6); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.3s ease; }
+        .news-item:hover { transform: translateX(-4px); }
+        .news-item.jp:hover { border-color: rgba(255,230,109,0.2); }
+        .news-item.en:hover { border-color: rgba(255,230,109,0.2); }
+        .news-item.ar:hover { border-color: rgba(255,230,109,0.2); }
+        .news-item .news-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+        .news-item.jp .news-icon { background: linear-gradient(135deg, rgba(255,230,109,0.2), rgba(255,230,109,0.05)); }
+        .news-item.en .news-icon { background: linear-gradient(135deg, rgba(255,230,109,0.2), rgba(255,230,109,0.05)); }
+        .news-item.ar .news-icon { background: linear-gradient(135deg, rgba(255,230,109,0.2), rgba(255,230,109,0.05)); }
+        .news-item .news-content { flex: 1; }
+        .news-item .news-content .news-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 2px; }
+        .news-item .news-content .news-desc { font-size: 0.78rem; color: var(--text-muted); }
+        .news-item .news-time { font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; }
+
+        /* صندوق الرسائل */
+        .chat-section { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px; }
+        .chat-section .chat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .chat-section .chat-header h3 { font-size: 1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        .chat-section .chat-header .online-count { background: rgba(46,204,113,0.15); color: var(--success); padding: 4px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .chat-section .chat-header .online-count::before { content: ''; width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse-dot 2s infinite; }
+        @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .chat-box { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 20px; padding: 12px; max-height: 280px; overflow-y: auto; margin-bottom: 12px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+        .chat-box::-webkit-scrollbar { width: 4px; }
+        .chat-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+        .chat-message { display: flex; gap: 10px; margin-bottom: 10px; animation: msgIn 0.3s ease; }
+        @keyframes msgIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .chat-message .msg-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.1); }
+        .chat-message .msg-body { flex: 1; min-width: 0; }
+        .chat-message .msg-body .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+        .chat-message .msg-body .msg-header .msg-name { font-size: 0.82rem; font-weight: 700; }
+        .chat-message .msg-body .msg-header .msg-badge { font-size: 0.6rem; padding: 1px 6px; border-radius: 6px; font-weight: 700; }
+        .chat-message.jp .msg-body .msg-header .msg-badge { background: rgba(231,76,60,0.2); color: var(--japanese); }
+        .chat-message.en .msg-body .msg-header .msg-badge { background: rgba(52,152,219,0.2); color: var(--english); }
+        .chat-message.ar .msg-body .msg-header .msg-badge { background: rgba(39,174,96,0.2); color: var(--arabic); }
+        .chat-message .msg-body .msg-header .msg-time { font-size: 0.7rem; color: var(--text-muted); }
+        .chat-message .msg-body .msg-text { font-size: 0.85rem; color: var(--text); line-height: 1.5; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); }
+        .chat-message .msg-body .msg-text .lang-highlight { font-weight: 700; }
+        .chat-message.jp .msg-body .msg-text .lang-highlight { color: var(--japanese); }
+        .chat-message.en .msg-body .msg-text .lang-highlight { color: var(--english); }
+        .chat-message.ar .msg-body .msg-text .lang-highlight { color: var(--arabic); }
+        .chat-message .msg-body .msg-actions { display: flex; gap: 12px; margin-top: 4px; padding: 0 8px; }
+        .chat-message .msg-body .msg-actions button { background: none; border: none; color: var(--text-muted); font-family: 'Tajawal', sans-serif; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.3s ease; padding: 2px 6px; border-radius: 6px; }
+        .chat-message .msg-body .msg-actions button:hover { background: rgba(255,255,255,0.05); color: var(--primary); }
+        .chat-message .msg-body .msg-actions button.liked { color: var(--primary); }
+
+        .chat-divider { text-align: center; margin: 12px 0; }
+        .chat-divider span { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: var(--accent); padding: 6px 16px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+
+        .chat-input-area { display: flex; gap: 8px; align-items: flex-end; }
+        .chat-input-wrapper { flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 18px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; }
+        .chat-input-wrapper:focus-within { border-color: rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); }
+        .chat-input-wrapper input { flex: 1; background: none; border: none; color: var(--text); font-family: 'Tajawal', sans-serif; font-size: 0.9rem; outline: none; padding: 6px 0; }
+        .chat-input-wrapper input::placeholder { color: var(--text-muted); }
+        .chat-input-wrapper .input-actions { display: flex; gap: 6px; }
+        .chat-input-wrapper .input-actions button { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px; border-radius: 8px; transition: all 0.3s ease; }
+        .chat-input-wrapper .input-actions button:hover { background: rgba(255,255,255,0.05); color: var(--primary); }
+        .chat-send-btn { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary-light)); border: none; color: white; font-size: 1.2rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(255,107,107,0.3); flex-shrink: 0; }
+        .chat-send-btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(255,107,107,0.4); }
+        .chat-send-btn:active { transform: scale(0.95); }
+
+        .chat-quick-replies { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .chat-quick-replies::-webkit-scrollbar { display: none; }
+        .chat-quick-replies button { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; color: var(--text-muted); font-family: 'Tajawal', sans-serif; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.3s ease; }
+        .chat-quick-replies button:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(22,33,62,0.95); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 20px; padding: 12px 24px; display: none; align-items: center; gap: 12px; z-index: 200; box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: slideUp 0.3s ease; }
+        .toast.show { display: flex; }
+        @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        .toast .toast-icon { font-size: 1.5rem; }
+        .toast .toast-text { font-size: 0.9rem; font-weight: 600; }
+
+        /* ملاحظة النطق */
+        .tts-note { background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.15); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+        .tts-note i { color: var(--secondary); font-size: 1.2rem; }
+        .tts-note p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+        .tts-note p strong { color: var(--secondary); }
+
+        
+        /* New room colors */
+        .room-btn.active-welcome { background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,107,107,0.05)); border-color: rgba(255,107,107,0.3); color: var(--welcome); box-shadow: 0 4px 15px rgba(255,107,107,0.2); }
+        .room-btn.active-art { background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(155,89,182,0.05)); border-color: rgba(155,89,182,0.3); color: var(--art); box-shadow: 0 4px 15px rgba(155,89,182,0.2); }
+        .room-btn.active-games { background: linear-gradient(135deg, rgba(243,156,18,0.2), rgba(243,156,18,0.05)); border-color: rgba(243,156,18,0.3); color: var(--games); box-shadow: 0 4px 15px rgba(243,156,18,0.2); }
+        .room-btn.active-music { background: linear-gradient(135deg, rgba(233,30,99,0.2), rgba(233,30,99,0.05)); border-color: rgba(233,30,99,0.3); color: var(--music); box-shadow: 0 4px 15px rgba(233,30,99,0.2); }
+
+        .corner-tab.active-welcome { background: linear-gradient(135deg, #FF6B6B, #FF8E8E); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(255,107,107,0.3); }
+        .corner-tab.active-art { background: linear-gradient(135deg, #9B59B6, #8E44AD); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(155,89,182,0.3); }
+        .corner-tab.active-games { background: linear-gradient(135deg, #F39C12, #E67E22); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(243,156,18,0.3); }
+        .corner-tab.active-music { background: linear-gradient(135deg, #E91E63, #C2185B); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(233,30,99,0.3); }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .chars-grid { grid-template-columns: repeat(3, 1fr); }
+            .shortcut-grid { grid-template-columns: 1fr; }
+            .room-btn { font-size: 0.75rem; }
+            .room-btn .room-flag { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars-bg" id="starsBg"></div>
+
+    <div class="top-bar">
+        <div class="logo">أوتاكو جو</div>
+        <div class="preview-badge">🎌 معاينة نظام غرف التعلم</div>
+    </div>
+
+    <div class="main-content">
+
+        <!-- اختيار الغرفة -->
+                <!-- اختيار الغرفة -->
+        <div class="room-selector">
+            <button class="room-btn active-jp" onclick="switchRoom('jp')">
+                <span class="room-flag">🇯🇵</span>
+                <span>اليابانية</span>
+            </button>
+            <button class="room-btn" onclick="switchRoom('en')">
+                <span class="room-flag">🇬🇧</span>
+                <span>الإنجليزية</span>
+            </button>
+            <button class="room-btn" onclick="switchRoom('ar')">
+                <span class="room-flag">🇸🇦</span>
+                <span>العربية</span>
+            </button>
+            <button class="room-btn" onclick="switchRoom('welcome')">
+                <span class="room-flag">🎌</span>
+                <span>الاستقبال</span>
+            </button>
+            <button class="room-btn" onclick="switchRoom('drawing')">
+                <span class="room-flag">🎨</span>
+                <span>الرسم</span>
+            </button>
+            <button class="room-btn" onclick="switchRoom('games')">
+                <span class="room-flag">🎮</span>
+                <span>الألعاب</span>
+            </button>
+            <button class="room-btn" onclick="switchRoom('music')">
+                <span class="room-flag">🎵</span>
+                <span>الموسيقى</span>
+            </button>
+            <button class="room-btn" onclick="switchRoom('arts')">
+                <span class="room-flag">🖼️</span>
+                <span>الفنون</span>
+            </button>
+        </div></div>
+
+        <!-- ملاحظة النطق -->
+        <div class="tts-note">
+            <i class="fas fa-volume-up"></i>
+            <p><strong>🔊 ميزة النطق الصوتي:</strong> اضغط على زر 🔊 بجانب أي كلمة أو جملة للاستماع إلى النطق الصحيح. يدعم النطق البطيء للمبتدئين.</p>
+        </div>
+
+        <!-- ===== غرفة اليابانية ===== -->
+        <div class="room-view active" id="room-jp">
+            <div class="room-header-card jp">
+                <div class="room-icon">📚</div>
+                <div class="room-info">
+                    <h2>تعلم اليابانية</h2>
+                    <p>هيراغانا · كاتاكانا · كانجي · محادثات · JLPT</p>
+                </div>
+                <div class="room-stats">
+                    <div class="stat-num">89</div>
+                    <div class="stat-label">متعلم</div>
+                </div>
+            </div>
+
+            <div class="corner-tabs">
+                <button class="corner-tab active-jp" onclick="switchCorner('jp', 0, this)">
+                    <span class="tab-icon">🔤</span>
+                    <span>الأحرف</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('jp', 1, this)">
+                    <span class="tab-icon">💬</span>
+                    <span>الجمل</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('jp', 2, this)">
+                    <span class="tab-icon">🗣️</span>
+                    <span>المحادثات</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('jp', 3, this)">
+                    <span class="tab-icon">📊</span>
+                    <span>مستواي</span>
+                </button>
+            </div>
+
+            <!-- ركن الأحرف -->
+            <div class="corner-content active" id="jp-corner0">
+                <div class="daily-card jp">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-star" style="color: var(--accent);"></i> حرف اليوم</h3>
+                        <span class="date-tag">اليوم · 20 مايو</span>
+                    </div>
+                    <div class="chars-grid">
+                        <div class="char-item jp" onclick="speakJP('あ', 'normal')">
+                            <span class="char-type">هيراغانا</span>
+                            <div class="char-symbol">あ</div>
+                            <div class="char-reading">a</div>
+                            <div class="char-meaning">صوت "أ"</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn jp" onclick="event.stopPropagation(); speakJP('あ', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item jp" onclick="speakJP('い', 'normal')">
+                            <span class="char-type">هيراغانا</span>
+                            <div class="char-symbol">い</div>
+                            <div class="char-reading">i</div>
+                            <div class="char-meaning">صوت "إي"</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn jp" onclick="event.stopPropagation(); speakJP('い', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item jp" onclick="speakJP('う', 'normal')">
+                            <span class="char-type">هيراغانا</span>
+                            <div class="char-symbol">う</div>
+                            <div class="char-reading">u</div>
+                            <div class="char-meaning">صوت "أو"</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn jp" onclick="event.stopPropagation(); speakJP('う', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item jp" onclick="speakJP('ア', 'normal')">
+                            <span class="char-type">كاتاكانا</span>
+                            <div class="char-symbol">ア</div>
+                            <div class="char-reading">a</div>
+                            <div class="char-meaning">صوت "أ"</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn jp" onclick="event.stopPropagation(); speakJP('ア', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item jp" onclick="speakJP('日', 'normal')">
+                            <span class="char-type">كانجي</span>
+                            <div class="char-symbol">日</div>
+                            <div class="char-reading">hi / nichi</div>
+                            <div class="char-meaning">شمس / يوم</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn jp" onclick="event.stopPropagation(); speakJP('日', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item jp" onclick="speakJP('こんにちは', 'normal')">
+                            <span class="char-type">كلمة</span>
+                            <div class="char-symbol">こんにちは</div>
+                            <div class="char-reading">konnichiwa</div>
+                            <div class="char-meaning">مرحباً</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn jp" onclick="event.stopPropagation(); speakJP('こんにちは', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="daily-card jp">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-hand-sparkles" style="color: var(--secondary);"></i> التحيات اليومية</h3>
+                        <span class="date-tag">5 تحيات · مع النطق</span>
+                    </div>
+                    <div class="greetings-list">
+                        <div class="greeting-item jp" onclick="speakJP('おはようございます', 'normal')">
+                            <div class="greeting-icon">🌅</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">おはようございます</div>
+                                <div class="greeting-reading">Ohayou gozaimasu</div>
+                                <div class="greeting-ar">صباح الخير (رسمي)</div>
+                            </div>
+                            <div class="greeting-play jp" onclick="event.stopPropagation(); speakJP('おはようございます', 'slow')"><i class="fas fa-turtle" title="نطق بطيء"></i></div>
+                        </div>
+                        <div class="greeting-item jp" onclick="speakJP('こんにちは', 'normal')">
+                            <div class="greeting-icon">☀️</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">こんにちは</div>
+                                <div class="greeting-reading">Konnichiwa</div>
+                                <div class="greeting-ar">مرحباً / مساء الخير</div>
+                            </div>
+                            <div class="greeting-play jp" onclick="event.stopPropagation(); speakJP('こんにちは', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item jp" onclick="speakJP('こんばんは', 'normal')">
+                            <div class="greeting-icon">🌙</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">こんばんは</div>
+                                <div class="greeting-reading">Konbanwa</div>
+                                <div class="greeting-ar">مساء الخير</div>
+                            </div>
+                            <div class="greeting-play jp" onclick="event.stopPropagation(); speakJP('こんばんは', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item jp" onclick="speakJP('おやすみなさい', 'normal')">
+                            <div class="greeting-icon">😴</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">おやすみなさい</div>
+                                <div class="greeting-reading">Oyasuminasai</div>
+                                <div class="greeting-ar">تصبح على خير</div>
+                            </div>
+                            <div class="greeting-play jp" onclick="event.stopPropagation(); speakJP('おやすみなさい', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item jp" onclick="speakJP('ありがとうございます', 'normal')">
+                            <div class="greeting-icon">🙏</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">ありがとうございます</div>
+                                <div class="greeting-reading">Arigatou gozaimasu</div>
+                                <div class="greeting-ar">شكراً جزيلاً</div>
+                            </div>
+                            <div class="greeting-play jp" onclick="event.stopPropagation(); speakJP('ありがとうございます', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن الجمل -->
+            <div class="corner-content" id="jp-corner1">
+                <div class="sentence-card jp" onclick="speakJP('わたしの名前はです', 'normal')">
+                    <span class="sentence-level">مبتدئ</span>
+                    <div class="sentence-target">わたしの名前は___です</div>
+                    <div class="sentence-reading">Watashi no namae wa ___ desu</div>
+                    <div class="sentence-ar">اسمي هو ___</div>
+                    <div class="sentence-tags">
+                        <span>👤 تعريف</span>
+                        <span>📝 قالب</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakJP('わたしの名前はです', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakJP('わたしの名前はです', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+
+                <div class="sentence-card jp" onclick="speakJP('が好きです', 'normal')">
+                    <span class="sentence-level">مبتدئ</span>
+                    <div class="sentence-target">___が好きです</div>
+                    <div class="sentence-reading">___ ga suki desu</div>
+                    <div class="sentence-ar">أنا أحب ___</div>
+                    <div class="sentence-tags">
+                        <span>❤️ تفضيل</span>
+                        <span>📝 قالب</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakJP('が好きです', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakJP('が好きです', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+
+                <div class="sentence-card jp" onclick="speakJP('はどこですか', 'normal')">
+                    <span class="sentence-level">متوسط</span>
+                    <div class="sentence-target">___はどこですか</div>
+                    <div class="sentence-reading">___ wa doko desu ka</div>
+                    <div class="sentence-ar">أين يقع ___؟</div>
+                    <div class="sentence-tags">
+                        <span>📍 سؤال</span>
+                        <span>🗺️ اتجاهات</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakJP('はどこですか', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakJP('はどこですか', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المحادثات -->
+            <div class="corner-content" id="jp-corner2">
+                <div class="conversation-card">
+                    <div class="conv-title"><i class="fas fa-comments"></i> في المقهى ☕</div>
+                    <div class="chat-bubble jp">
+                        <div class="bubble-avatar" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);">س</div>
+                        <div class="bubble-content">
+                            <div class="bubble-sound" onclick="speakJP('いらっしゃいませ何名様ですか', 'normal')"><i class="fas fa-volume-up"></i></div>
+                            <div class="bubble-target">いらっしゃいませ！何名様ですか</div>
+                            <div class="bubble-reading">Irasshaimase! Nan mei sama desu ka</div>
+                            <div class="bubble-ar">أهلاً وسهلاً! كم شخص؟</div>
+                        </div>
+                    </div>
+                    <div class="chat-bubble me jp">
+                        <div class="bubble-avatar" style="background: linear-gradient(135deg, #E74C3C, #C0392B);">أ</div>
+                        <div class="bubble-content">
+                            <div class="bubble-sound" onclick="speakJP('一人です', 'normal')"><i class="fas fa-volume-up"></i></div>
+                            <div class="bubble-target">一人です</div>
+                            <div class="bubble-reading">Hitori desu</div>
+                            <div class="bubble-ar">شخص واحد</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0; text-align: center;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">📌 اختصارات الكتابة الشائعة</span>
+                </div>
+                <div class="shortcut-grid">
+                    <div class="shortcut-item">
+                        <div class="short-form">w</div>
+                        <div class="short-full">warau (笑う)</div>
+                        <div class="short-meaning">😂 ضحك</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">www</div>
+                        <div class="short-full">ضحك ×3</div>
+                        <div class="short-meaning">😂😂😂 ضحك كثير</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">orz</div>
+                        <div class="short-full">شخص راكع</div>
+                        <div class="short-meaning">🙇 اعتذار / خيبة</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">ktkr</div>
+                        <div class="short-full">kita kore</div>
+                        <div class="short-meaning">🔥 لحظة حاسمة!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المستوى -->
+            <div class="corner-content" id="jp-corner3">
+                <div class="level-card jp">
+                    <div class="level-icon">🥉</div>
+                    <div class="level-title">مستوى المبتدئ (N5)</div>
+                    <div class="level-desc">أنت في بداية رحلتك! استمر في التعلم</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 35%;"></div>
+                    </div>
+                    <div class="progress-text">35% - 120/350 نقطة للمستوى التالي</div>
+                </div>
+
+                <div class="quiz-card jp">
+                    <div class="quiz-header">
+                        <h4><i class="fas fa-brain" style="color: var(--accent);"></i> اختبار سريع</h4>
+                        <span class="quiz-counter">س 1 / 5</span>
+                    </div>
+                    <div class="quiz-sound-btn">
+                        <button onclick="speakJP('ありがとう', 'normal')"><i class="fas fa-volume-up"></i> استمع للسؤال</button>
+                    </div>
+                    <div class="quiz-question">ما معنى "ありがとう"؟</div>
+                    <div class="quiz-options">
+                        <button onclick="checkAnswer(this, false)">A) مع السلامة</button>
+                        <button onclick="checkAnswer(this, true)">B) شكراً</button>
+                        <button onclick="checkAnswer(this, false)">C) صباح الخير</button>
+                        <button onclick="checkAnswer(this, false)">D) أهلاً</button>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0 12px;">
+                    <span style="font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-bell" style="color: var(--accent);"></i> أخبار مستواك
+                    </span>
+                </div>
+                <div class="news-item jp">
+                    <div class="news-icon">🎯</div>
+                    <div class="news-content">
+                        <div class="news-title">إنجاز جديد!</div>
+                        <div class="news-desc">حفظت 10 كلمات يابانية هذا الأسبوع</div>
+                    </div>
+                    <div class="news-time">اليوم</div>
+                </div>
+                <div class="news-item jp">
+                    <div class="news-icon">📈</div>
+                    <div class="news-content">
+                        <div class="news-title">تقدم ملحوظ</div>
+                        <div class="news-desc">أكملت 3 دروس في التحيات</div>
+                    </div>
+                    <div class="news-time">أمس</div>
+                </div>
+            </div>
+
+            <!-- صندوق الرسائل -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3><i class="fas fa-comments" style="color: var(--secondary);"></i> نقاش المتعلمين</h3>
+                    <div class="online-count">12 متصل</div>
+                </div>
+                <div class="chat-box" id="jp-chatBox">
+                    <div class="chat-divider"><span>اليوم</span></div>
+
+                    <div class="chat-message jp">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);">س</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">سارة</span>
+                                <span class="msg-badge">مبتدئ</span>
+                                <span class="msg-time">10:30</span>
+                            </div>
+                            <div class="msg-text">
+                                مرحباً جميعاً! هل يمكنكم مساعدتي في نطق <span class="lang-highlight">「ら」</span>؟ أجد صعوبة في تمييزها عن <span class="lang-highlight">「な」</span>
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 5</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-message jp">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #3498DB, #2980B9);">م</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">محمد</span>
+                                <span class="msg-badge">متوسط</span>
+                                <span class="msg-time">10:32</span>
+                            </div>
+                            <div class="msg-text">
+                                @سارة الفرق بسيط! <span class="lang-highlight">「ら」</span> تنطق "را" (لسان يرتجف) بينما <span class="lang-highlight">「な」</span> تنطق "نا" (لسان يلامس سقف الحنك). جربي التمرين اليومي في الركن الأول 🎯
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 12</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-message jp">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #27AE60, #2ECC71);">ع</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">عمر</span>
+                                <span class="msg-badge">متقدم</span>
+                                <span class="msg-time">10:35</span>
+                            </div>
+                            <div class="msg-text">
+                                شاركتُ ملخصاً لقواعد الـ particles في قسم الجمل الشائعة! مفيد جداً للمبتدئين 📚✨
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 8</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="jp-chatInput" placeholder="شارك سؤالك أو تجربتك..." onkeypress="handleChatKey(event, 'jp')">
+                        <div class="input-actions">
+                            <button onclick="addEmoji('jp')"><i class="far fa-smile"></i></button>
+                            <button onclick="attachFile('jp')"><i class="fas fa-paperclip"></i></button>
+                        </div>
+                    </div>
+                    <button class="chat-send-btn" onclick="sendMessage('jp')"><i class="fas fa-paper-plane"></i></button>
+                </div>
+
+                <div class="chat-quick-replies">
+                    <button onclick="quickReply('jp', 'هل يمكنكم مساعدتي؟')">🙏 هل يمكنكم مساعدتي؟</button>
+                    <button onclick="quickReply('jp', 'شكراً على الشرح!')">❤️ شكراً على الشرح!</button>
+                    <button onclick="quickReply('jp', 'لدي سؤال عن النطق')">🗣️ سؤال عن النطق</button>
+                    <button onclick="quickReply('jp', 'من يريد التدرب معي؟')">💬 من يريد التدرب معي؟</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== غرفة الإنجليزية ===== -->
+        <div class="room-view" id="room-en">
+            <div class="room-header-card en">
+                <div class="room-icon">🇬🇧</div>
+                <div class="room-info">
+                    <h2>تعلم الإنجليزية</h2>
+                    <p>مفردات · قواعد · محادثات · مصطلحات أنمي · IELTS</p>
+                </div>
+                <div class="room-stats">
+                    <div class="stat-num">56</div>
+                    <div class="stat-label">متعلم</div>
+                </div>
+            </div>
+
+            <div class="corner-tabs">
+                <button class="corner-tab active-en" onclick="switchCorner('en', 0, this)">
+                    <span class="tab-icon">🔤</span>
+                    <span>المفردات</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('en', 1, this)">
+                    <span class="tab-icon">💬</span>
+                    <span>الجمل</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('en', 2, this)">
+                    <span class="tab-icon">🗣️</span>
+                    <span>المحادثات</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('en', 3, this)">
+                    <span class="tab-icon">📊</span>
+                    <span>مستواي</span>
+                </button>
+            </div>
+
+            <!-- ركن المفردات -->
+            <div class="corner-content active" id="en-corner0">
+                <div class="daily-card en">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-star" style="color: var(--accent);"></i> كلمة اليوم</h3>
+                        <span class="date-tag">اليوم · 20 مايو</span>
+                    </div>
+                    <div class="chars-grid">
+                        <div class="char-item en" onclick="speakEN('Adventure', 'normal')">
+                            <span class="char-type">اسم</span>
+                            <div class="char-symbol">Adventure</div>
+                            <div class="char-reading">/ədˈvɛntʃər/</div>
+                            <div class="char-meaning">مغامرة</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn en" onclick="event.stopPropagation(); speakEN('Adventure', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item en" onclick="speakEN('Determination', 'normal')">
+                            <span class="char-type">اسم</span>
+                            <div class="char-symbol">Determination</div>
+                            <div class="char-reading">/dɪˌtɜːmɪˈneɪʃən/</div>
+                            <div class="char-meaning">إصرار / عزيمة</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn en" onclick="event.stopPropagation(); speakEN('Determination', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item en" onclick="speakEN('Friendship', 'normal')">
+                            <span class="char-type">اسم</span>
+                            <div class="char-symbol">Friendship</div>
+                            <div class="char-reading">/ˈfrɛndʃɪp/</div>
+                            <div class="char-meaning">صداقة</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn en" onclick="event.stopPropagation(); speakEN('Friendship', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item en" onclick="speakEN('Power', 'normal')">
+                            <span class="char-type">اسم</span>
+                            <div class="char-symbol">Power</div>
+                            <div class="char-reading">/ˈpaʊər/</div>
+                            <div class="char-meaning">قوة / قدرة</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn en" onclick="event.stopPropagation(); speakEN('Power', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item en" onclick="speakEN('Courage', 'normal')">
+                            <span class="char-type">اسم</span>
+                            <div class="char-symbol">Courage</div>
+                            <div class="char-reading">/ˈkʌrɪdʒ/</div>
+                            <div class="char-meaning">شجاعة</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn en" onclick="event.stopPropagation(); speakEN('Courage', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item en" onclick="speakEN('Dream', 'normal')">
+                            <span class="char-type">اسم</span>
+                            <div class="char-symbol">Dream</div>
+                            <div class="char-reading">/driːm/</div>
+                            <div class="char-meaning">حلم</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn en" onclick="event.stopPropagation(); speakEN('Dream', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="daily-card en">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-hand-sparkles" style="color: var(--secondary);"></i> التحيات والمجاملات</h3>
+                        <span class="date-tag">5 عبارات · مع النطق</span>
+                    </div>
+                    <div class="greetings-list">
+                        <div class="greeting-item en" onclick="speakEN('Good morning', 'normal')">
+                            <div class="greeting-icon">🌅</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">Good morning</div>
+                                <div class="greeting-reading">/ɡʊd ˈmɔːrnɪŋ/</div>
+                                <div class="greeting-ar">صباح الخير</div>
+                            </div>
+                            <div class="greeting-play en" onclick="event.stopPropagation(); speakEN('Good morning', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item en" onclick="speakEN('How are you', 'normal')">
+                            <div class="greeting-icon">😊</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">How are you?</div>
+                                <div class="greeting-reading">/haʊ ɑːr juː/</div>
+                                <div class="greeting-ar">كيف حالك؟</div>
+                            </div>
+                            <div class="greeting-play en" onclick="event.stopPropagation(); speakEN('How are you', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item en" onclick="speakEN('Nice to meet you', 'normal')">
+                            <div class="greeting-icon">🤝</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">Nice to meet you</div>
+                                <div class="greeting-reading">/naɪs tuː miːt juː/</div>
+                                <div class="greeting-ar">تشرفت بلقائك</div>
+                            </div>
+                            <div class="greeting-play en" onclick="event.stopPropagation(); speakEN('Nice to meet you', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item en" onclick="speakEN('Thank you very much', 'normal')">
+                            <div class="greeting-icon">🙏</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">Thank you very much</div>
+                                <div class="greeting-reading">/θæŋk juː ˈvɛri mʌtʃ/</div>
+                                <div class="greeting-ar">شكراً جزيلاً</div>
+                            </div>
+                            <div class="greeting-play en" onclick="event.stopPropagation(); speakEN('Thank you very much', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item en" onclick="speakEN('See you later', 'normal')">
+                            <div class="greeting-icon">👋</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">See you later</div>
+                                <div class="greeting-reading">/siː juː ˈleɪtər/</div>
+                                <div class="greeting-ar">أراك لاحقاً</div>
+                            </div>
+                            <div class="greeting-play en" onclick="event.stopPropagation(); speakEN('See you later', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن الجمل -->
+            <div class="corner-content" id="en-corner1">
+                <div class="sentence-card en" onclick="speakEN('My name is', 'normal')">
+                    <span class="sentence-level">مبتدئ</span>
+                    <div class="sentence-target">My name is ___</div>
+                    <div class="sentence-reading">/maɪ neɪm ɪz/</div>
+                    <div class="sentence-ar">اسمي هو ___</div>
+                    <div class="sentence-tags">
+                        <span>👤 تعريف</span>
+                        <span>📝 قالب</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakEN('My name is', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakEN('My name is', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+
+                <div class="sentence-card en" onclick="speakEN('I like anime', 'normal')">
+                    <span class="sentence-level">مبتدئ</span>
+                    <div class="sentence-target">I like ___</div>
+                    <div class="sentence-reading">/aɪ laɪk/</div>
+                    <div class="sentence-ar">أنا أحب ___</div>
+                    <div class="sentence-tags">
+                        <span>❤️ تفضيل</span>
+                        <span>🎌 أنمي</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakEN('I like anime', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakEN('I like anime', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+
+                <div class="sentence-card en" onclick="speakEN('Where is the bathroom', 'normal')">
+                    <span class="sentence-level">متوسط</span>
+                    <div class="sentence-target">Where is ___?</div>
+                    <div class="sentence-reading">/wɛər ɪz/</div>
+                    <div class="sentence-ar">أين يقع ___؟</div>
+                    <div class="sentence-tags">
+                        <span>📍 سؤال</span>
+                        <span>🗺️ اتجاهات</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakEN('Where is the bathroom', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakEN('Where is the bathroom', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+
+                <div class="sentence-card en" onclick="speakEN('I will never give up', 'normal')">
+                    <span class="sentence-level">متقدم</span>
+                    <div class="sentence-target">I will never give up</div>
+                    <div class="sentence-reading">/aɪ wɪl ˈnɛvər ɡɪv ʌp/</div>
+                    <div class="sentence-ar">لن أستسلم أبداً</div>
+                    <div class="sentence-tags">
+                        <span>💪 تحفيز</span>
+                        <span>🎌 أنمي</span>
+                        <span>⭐ مميز</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakEN('I will never give up', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakEN('I will never give up', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المحادثات -->
+            <div class="corner-content" id="en-corner2">
+                <div class="conversation-card">
+                    <div class="conv-title"><i class="fas fa-store"></i> في المكتبة 📚</div>
+                    <div class="chat-bubble en">
+                        <div class="bubble-avatar" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);">ل</div>
+                        <div class="bubble-content">
+                            <div class="bubble-sound" onclick="speakEN('Can I help you find something', 'normal')"><i class="fas fa-volume-up"></i></div>
+                            <div class="bubble-target">Can I help you find something?</div>
+                            <div class="bubble-reading">/kæn aɪ hɛlp juː faɪnd ˈsʌmθɪŋ/</div>
+                            <div class="bubble-ar">هل يمكنني مساعدتك في إيجاد شيء؟</div>
+                        </div>
+                    </div>
+                    <div class="chat-bubble me en">
+                        <div class="bubble-avatar" style="background: linear-gradient(135deg, #3498DB, #2980B9);">أ</div>
+                        <div class="bubble-content">
+                            <div class="bubble-sound" onclick="speakEN('I am looking for manga books', 'normal')"><i class="fas fa-volume-up"></i></div>
+                            <div class="bubble-target">I am looking for manga books</div>
+                            <div class="bubble-reading">/aɪ æm ˈlʊkɪŋ fɔːr ˈmæŋɡə bʊks/</div>
+                            <div class="bubble-ar">أبحث عن كتب المانجا</div>
+                        </div>
+                    </div>
+                    <div class="chat-bubble en">
+                        <div class="bubble-avatar" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);">ل</div>
+                        <div class="bubble-content">
+                            <div class="bubble-sound" onclick="speakEN('They are in section B on the second floor', 'normal')"><i class="fas fa-volume-up"></i></div>
+                            <div class="bubble-target">They are in section B, second floor</div>
+                            <div class="bubble-reading">/ðeɪ ɑːr ɪn ˈsɛkʃən biː, ˈsɛkənd flɔːr/</div>
+                            <div class="bubble-ar">هي في القسم ب، الطابق الثاني</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0; text-align: center;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">📌 اختصارات الإنترنت الشائعة</span>
+                </div>
+                <div class="shortcut-grid">
+                    <div class="shortcut-item">
+                        <div class="short-form">LOL</div>
+                        <div class="short-full">Laugh Out Loud</div>
+                        <div class="short-meaning">😂 ضحك بصوت عالٍ</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">BRB</div>
+                        <div class="short-full">Be Right Back</div>
+                        <div class="short-meaning">⏳ سأعود الآن</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">TBH</div>
+                        <div class="short-full">To Be Honest</div>
+                        <div class="short-meaning">🤔 بصراحة</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">IMO</div>
+                        <div class="short-full">In My Opinion</div>
+                        <div class="short-meaning">💭 برأيي</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">FYI</div>
+                        <div class="short-full">For Your Information</div>
+                        <div class="short-meaning">📢 لمعلوماتك</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">ASAP</div>
+                        <div class="short-full">As Soon As Possible</div>
+                        <div class="short-meaning">⚡ في أقرب وقت</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المستوى -->
+            <div class="corner-content" id="en-corner3">
+                <div class="level-card en">
+                    <div class="level-icon">🥈</div>
+                    <div class="level-title">مستوى المتوسط (B1)</div>
+                    <div class="level-desc">أنت تتقدم بشكل ممتاز! واصل العمل</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 62%;"></div>
+                    </div>
+                    <div class="progress-text">62% - 310/500 نقطة للمستوى التالي</div>
+                </div>
+
+                <div class="quiz-card en">
+                    <div class="quiz-header">
+                        <h4><i class="fas fa-brain" style="color: var(--accent);"></i> اختبار سريع</h4>
+                        <span class="quiz-counter">س 1 / 5</span>
+                    </div>
+                    <div class="quiz-sound-btn">
+                        <button onclick="speakEN('What does determined mean', 'normal')"><i class="fas fa-volume-up"></i> استمع للسؤال</button>
+                    </div>
+                    <div class="quiz-question">ما معنى "Determined"؟</div>
+                    <div class="quiz-options">
+                        <button onclick="checkAnswer(this, false)">A) خائف</button>
+                        <button onclick="checkAnswer(this, true)">B) مصمم / عازم</button>
+                        <button onclick="checkAnswer(this, false)">C) سعيد</button>
+                        <button onclick="checkAnswer(this, false)">D) غاضب</button>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0 12px;">
+                    <span style="font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-bell" style="color: var(--accent);"></i> أخبار مستواك
+                    </span>
+                </div>
+                <div class="news-item en">
+                    <div class="news-icon">🎯</div>
+                    <div class="news-content">
+                        <div class="news-title">إنجاز رائع!</div>
+                        <div class="news-desc">أكملت 20 جملة إنجليزية هذا الأسبوع</div>
+                    </div>
+                    <div class="news-time">اليوم</div>
+                </div>
+                <div class="news-item en">
+                    <div class="news-icon">📈</div>
+                    <div class="news-content">
+                        <div class="news-title">تحسن في النطق</div>
+                        <div class="news-desc">استخدمت ميزة النطق 45 مرة هذا الأسبوع</div>
+                    </div>
+                    <div class="news-time">أمس</div>
+                </div>
+            </div>
+
+            <!-- صندوق الرسائل -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3><i class="fas fa-comments" style="color: var(--secondary);"></i> نقاش المتعلمين</h3>
+                    <div class="online-count">8 متصل</div>
+                </div>
+                <div class="chat-box" id="en-chatBox">
+                    <div class="chat-divider"><span>اليوم</span></div>
+
+                    <div class="chat-message en">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #E74C3C, #C0392B);">ف</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">فاطمة</span>
+                                <span class="msg-badge">مبتدئ</span>
+                                <span class="msg-time">09:15</span>
+                            </div>
+                            <div class="msg-text">
+                                هل يمكن لأحد أن يشرح لي الفرق بين <span class="lang-highlight">"Much"</span> و <span class="lang-highlight">"Many"</span>؟ 🤔
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 3</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-message en">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #3498DB, #2980B9);">أ</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">أحمد</span>
+                                <span class="msg-badge">متوسط</span>
+                                <span class="msg-time">09:18</span>
+                            </div>
+                            <div class="msg-text">
+                                @فاطمة <span class="lang-highlight">"Much"</span> للأشياء غير المعدودة (ماء، وقت) و <span class="lang-highlight">"Many"</span> للمعدودة (كتب، أصدقاء). جربي الأمثلة في الركن الأول! 📚
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 9</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="en-chatInput" placeholder="شارك سؤالك أو تجربتك..." onkeypress="handleChatKey(event, 'en')">
+                        <div class="input-actions">
+                            <button onclick="addEmoji('en')"><i class="far fa-smile"></i></button>
+                            <button onclick="attachFile('en')"><i class="fas fa-paperclip"></i></button>
+                        </div>
+                    </div>
+                    <button class="chat-send-btn" onclick="sendMessage('en')"><i class="fas fa-paper-plane"></i></button>
+                </div>
+
+                <div class="chat-quick-replies">
+                    <button onclick="quickReply('en', 'Can you help me?')">🙏 Can you help me?</button>
+                    <button onclick="quickReply('en', 'Thanks for explaining!')">❤️ Thanks for explaining!</button>
+                    <button onclick="quickReply('en', 'I have a grammar question')">📝 I have a grammar question</button>
+                    <button onclick="quickReply('en', 'Who wants to practice with me?')">💬 Who wants to practice?</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== غرفة العربية ===== -->
+        <div class="room-view" id="room-ar">
+            <div class="room-header-card ar">
+                <div class="room-icon">🇸🇦</div>
+                <div class="room-info">
+                    <h2>تعلم العربية الفصحى</h2>
+                    <p>أحرف · قواعد · بلاغة · محادثات · تحديات يومية</p>
+                </div>
+                <div class="room-stats">
+                    <div class="stat-num">43</div>
+                    <div class="stat-label">متعلم</div>
+                </div>
+            </div>
+
+            <div class="corner-tabs">
+                <button class="corner-tab active-ar" onclick="switchCorner('ar', 0, this)">
+                    <span class="tab-icon">🔤</span>
+                    <span>الأحرف</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('ar', 1, this)">
+                    <span class="tab-icon">💬</span>
+                    <span>الجمل</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('ar', 2, this)">
+                    <span class="tab-icon">🗣️</span>
+                    <span>المحادثات</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('ar', 3, this)">
+                    <span class="tab-icon">📊</span>
+                    <span>مستواي</span>
+                </button>
+            </div>
+
+            <!-- ركن الأحرف -->
+            <div class="corner-content active" id="ar-corner0">
+                <div class="daily-card ar">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-star" style="color: var(--accent);"></i> حرف اليوم</h3>
+                        <span class="date-tag">اليوم · 20 مايو</span>
+                    </div>
+                    <div class="chars-grid">
+                        <div class="char-item ar" onclick="speakAR('ألف', 'normal')">
+                            <span class="char-type">حرف</span>
+                            <div class="char-symbol">أ</div>
+                            <div class="char-reading">ألف</div>
+                            <div class="char-meaning">صوت "أ" المفتوح</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn ar" onclick="event.stopPropagation(); speakAR('ألف', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item ar" onclick="speakAR('باء', 'normal')">
+                            <span class="char-type">حرف</span>
+                            <div class="char-symbol">ب</div>
+                            <div class="char-reading">باء</div>
+                            <div class="char-meaning">صوت "ب"</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn ar" onclick="event.stopPropagation(); speakAR('باء', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item ar" onclick="speakAR('تاء', 'normal')">
+                            <span class="char-type">حرف</span>
+                            <div class="char-symbol">ت</div>
+                            <div class="char-reading">تاء</div>
+                            <div class="char-meaning">صوت "ت"</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn ar" onclick="event.stopPropagation(); speakAR('تاء', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item ar" onclick="speakAR('ثاء', 'normal')">
+                            <span class="char-type">حرف</span>
+                            <div class="char-symbol">ث</div>
+                            <div class="char-reading">ثاء</div>
+                            <div class="char-meaning">صوت "ث" (اللثوي)</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn ar" onclick="event.stopPropagation(); speakAR('ثاء', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item ar" onclick="speakAR('جيم', 'normal')">
+                            <span class="char-type">حرف</span>
+                            <div class="char-symbol">ج</div>
+                            <div class="char-reading">جيم</div>
+                            <div class="char-meaning">صوت "ج"</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn ar" onclick="event.stopPropagation(); speakAR('جيم', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                        <div class="char-item ar" onclick="speakAR('حاء', 'normal')">
+                            <span class="char-type">حرف</span>
+                            <div class="char-symbol">ح</div>
+                            <div class="char-reading">حاء</div>
+                            <div class="char-meaning">صوت "ح" (حلقي)</div>
+                            <div class="sound-controls">
+                                <button class="sound-btn ar" onclick="event.stopPropagation(); speakAR('حاء', 'slow')"><i class="fas fa-play"></i> بطيء</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="daily-card ar">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-hand-sparkles" style="color: var(--secondary);"></i> التحيات والمجاملات</h3>
+                        <span class="date-tag">5 تحيات · مع النطق</span>
+                    </div>
+                    <div class="greetings-list">
+                        <div class="greeting-item ar" onclick="speakAR('السلام عليكم', 'normal')">
+                            <div class="greeting-icon">🌅</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">السلام عليكم ورحمة الله</div>
+                                <div class="greeting-reading">As-salamu alaykum</div>
+                                <div class="greeting-ar">التحية الإسلامية</div>
+                            </div>
+                            <div class="greeting-play ar" onclick="event.stopPropagation(); speakAR('السلام عليكم', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item ar" onclick="speakAR('صباح الخير', 'normal')">
+                            <div class="greeting-icon">☀️</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">صباح الخير</div>
+                                <div class="greeting-reading">Sabah al-khair</div>
+                                <div class="greeting-ar">تحية الصباح</div>
+                            </div>
+                            <div class="greeting-play ar" onclick="event.stopPropagation(); speakAR('صباح الخير', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item ar" onclick="speakAR('مساء الخير', 'normal')">
+                            <div class="greeting-icon">🌙</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">مساء الخير</div>
+                                <div class="greeting-reading">Masaa al-khair</div>
+                                <div class="greeting-ar">تحية المساء</div>
+                            </div>
+                            <div class="greeting-play ar" onclick="event.stopPropagation(); speakAR('مساء الخير', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item ar" onclick="speakAR('شكراً جزيلاً', 'normal')">
+                            <div class="greeting-icon">🙏</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">شكراً جزيلاً لك</div>
+                                <div class="greeting-reading">Shukran jazeelan</div>
+                                <div class="greeting-ar">التعبير عن الشكر</div>
+                            </div>
+                            <div class="greeting-play ar" onclick="event.stopPropagation(); speakAR('شكراً جزيلاً', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                        <div class="greeting-item ar" onclick="speakAR('مع السلامة', 'normal')">
+                            <div class="greeting-icon">👋</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target">مع السلامة</div>
+                                <div class="greeting-reading">Ma'a as-salama</div>
+                                <div class="greeting-ar">وداع</div>
+                            </div>
+                            <div class="greeting-play ar" onclick="event.stopPropagation(); speakAR('مع السلامة', 'slow')"><i class="fas fa-turtle"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن الجمل -->
+            <div class="corner-content" id="ar-corner1">
+                <div class="sentence-card ar" onclick="speakAR('اسمي هو', 'normal')">
+                    <span class="sentence-level">مبتدئ</span>
+                    <div class="sentence-target">اسمي هو ___</div>
+                    <div class="sentence-reading">Ismi huwa ___</div>
+                    <div class="sentence-ar">My name is ___</div>
+                    <div class="sentence-tags">
+                        <span>👤 تعريف</span>
+                        <span>📝 قالب</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakAR('اسمي هو', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakAR('اسمي هو', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+
+                <div class="sentence-card ar" onclick="speakAR('أنا أحب', 'normal')">
+                    <span class="sentence-level">مبتدئ</span>
+                    <div class="sentence-target">أنا أحب ___</div>
+                    <div class="sentence-reading">Ana uhibbu ___</div>
+                    <div class="sentence-ar">I like ___</div>
+                    <div class="sentence-tags">
+                        <span>❤️ تفضيل</span>
+                        <span>📝 قالب</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakAR('أنا أحب', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakAR('أنا أحب', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+
+                <div class="sentence-card ar" onclick="speakAR('أين يقع', 'normal')">
+                    <span class="sentence-level">متوسط</span>
+                    <div class="sentence-target">أين يقع ___؟</div>
+                    <div class="sentence-reading">Ayna yaqa'u ___?</div>
+                    <div class="sentence-ar">Where is ___?</div>
+                    <div class="sentence-tags">
+                        <span>📍 سؤال</span>
+                        <span>🗺️ اتجاهات</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakAR('أين يقع', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakAR('أين يقع', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+
+                <div class="sentence-card ar" onclick="speakAR('لن أستسلم أبداً', 'normal')">
+                    <span class="sentence-level">متقدم</span>
+                    <div class="sentence-target">لن أستسلم أبداً</div>
+                    <div class="sentence-reading">Lan astaslim abadan</div>
+                    <div class="sentence-ar">I will never give up</div>
+                    <div class="sentence-tags">
+                        <span>💪 تحفيز</span>
+                        <span>🎌 أنمي</span>
+                        <span>⭐ مميز</span>
+                    </div>
+                    <div class="sentence-sound">
+                        <button onclick="event.stopPropagation(); speakAR('لن أستسلم أبداً', 'slow')"><i class="fas fa-turtle"></i> بطيء</button>
+                        <button onclick="event.stopPropagation(); speakAR('لن أستسلم أبداً', 'normal')"><i class="fas fa-play"></i> عادي</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المحادثات -->
+            <div class="corner-content" id="ar-corner2">
+                <div class="conversation-card">
+                    <div class="conv-title"><i class="fas fa-store"></i> في المقهى ☕</div>
+                    <div class="chat-bubble ar">
+                        <div class="bubble-avatar" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);">ن</div>
+                        <div class="bubble-content">
+                            <div class="bubble-sound" onclick="speakAR('أهلاً بك كم شخص معك', 'normal')"><i class="fas fa-volume-up"></i></div>
+                            <div class="bubble-target">أهلاً بك! كم شخص معك؟</div>
+                            <div class="bubble-reading">Ahlan bika! Kam shakhs ma'aka?</div>
+                            <div class="bubble-ar">Welcome! How many people with you?</div>
+                        </div>
+                    </div>
+                    <div class="chat-bubble me ar">
+                        <div class="bubble-avatar" style="background: linear-gradient(135deg, #27AE60, #2ECC71);">أ</div>
+                        <div class="bubble-content">
+                            <div class="bubble-sound" onclick="speakAR('شخص واحد من فضلك', 'normal')"><i class="fas fa-volume-up"></i></div>
+                            <div class="bubble-target">شخص واحد، من فضلك</div>
+                            <div class="bubble-reading">Shakhs wahid, min fadlik</div>
+                            <div class="bubble-ar">One person, please</div>
+                        </div>
+                    </div>
+                    <div class="chat-bubble ar">
+                        <div class="bubble-avatar" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);">ن</div>
+                        <div class="bubble-content">
+                            <div class="bubble-sound" onclick="speakAR('حسناً تفضل بالجلوس هنا', 'normal')"><i class="fas fa-volume-up"></i></div>
+                            <div class="bubble-target">حسناً، تفضل بالجلوس هنا</div>
+                            <div class="bubble-reading">Hasanan, tafaddal bil-julusi huna</div>
+                            <div class="bubble-ar">Okay, please sit here</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0; text-align: center;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">📌 اختصارات التراسل الشائعة</span>
+                </div>
+                <div class="shortcut-grid">
+                    <div class="shortcut-item">
+                        <div class="short-form">ههه</div>
+                        <div class="short-full">ضحك</div>
+                        <div class="short-meaning">😂 هههه</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">إن شاء الله</div>
+                        <div class="short-full">Insha'Allah</div>
+                        <div class="short-meaning">🙏 إن شاء الله</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">جزاك الله خيراً</div>
+                        <div class="short-full">JazakAllah khair</div>
+                        <div class="short-meaning">🙏 جزاك الله خيراً</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">سلام</div>
+                        <div class="short-full">Salam</div>
+                        <div class="short-meaning">👋 سلام</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المستوى -->
+            <div class="corner-content" id="ar-corner3">
+                <div class="level-card ar">
+                    <div class="level-icon">🥇</div>
+                    <div class="level-title">مستوى المتقدم (C1)</div>
+                    <div class="level-desc">أنت متقن للعربية! استمر في التحديات</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 78%;"></div>
+                    </div>
+                    <div class="progress-text">78% - 390/500 نقطة للمستوى التالي</div>
+                </div>
+
+                <div class="quiz-card ar">
+                    <div class="quiz-header">
+                        <h4><i class="fas fa-brain" style="color: var(--accent);"></i> اختبار سريع</h4>
+                        <span class="quiz-counter">س 1 / 5</span>
+                    </div>
+                    <div class="quiz-sound-btn">
+                        <button onclick="speakAR('ما هو جمع كلمة كتاب', 'normal')"><i class="fas fa-volume-up"></i> استمع للسؤال</button>
+                    </div>
+                    <div class="quiz-question">ما هو جمع "كتاب"؟</div>
+                    <div class="quiz-options">
+                        <button onclick="checkAnswer(this, false)">A) كتابون</button>
+                        <button onclick="checkAnswer(this, true)">B) كتب</button>
+                        <button onclick="checkAnswer(this, false)">C) كاتبون</button>
+                        <button onclick="checkAnswer(this, false)">D) مكتوبون</button>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0 12px;">
+                    <span style="font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-bell" style="color: var(--accent);"></i> أخبار مستواك
+                    </span>
+                </div>
+                <div class="news-item ar">
+                    <div class="news-icon">🎯</div>
+                    <div class="news-content">
+                        <div class="news-title">إنجاز مذهل!</div>
+                        <div class="news-desc">أكملت تحدي البلاغة اليومي 7 أيام متتالية</div>
+                    </div>
+                    <div class="news-time">اليوم</div>
+                </div>
+                <div class="news-item ar">
+                    <div class="news-icon">📈</div>
+                    <div class="news-content">
+                        <div class="news-title">تقدم في المحادثات</div>
+                        <div class="news-desc">شاركت في 15 محادثة هذا الأسبوع</div>
+                    </div>
+                    <div class="news-time">أمس</div>
+                </div>
+            </div>
+
+            <!-- صندوق الرسائل -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3><i class="fas fa-comments" style="color: var(--secondary);"></i> نقاش المتعلمين</h3>
+                    <div class="online-count">6 متصل</div>
+                </div>
+                <div class="chat-box" id="ar-chatBox">
+                    <div class="chat-divider"><span>اليوم</span></div>
+
+                    <div class="chat-message ar">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #E74C3C, #C0392B);">ن</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">نور</span>
+                                <span class="msg-badge">متوسط</span>
+                                <span class="msg-time">11:00</span>
+                            </div>
+                            <div class="msg-text">
+                                هل يمكن لأحد أن يشرح لي الفرق بين <span class="lang-highlight">"كان"</span> و <span class="lang-highlight">"أصبح"</span> في الأفعال الناقصة؟ 📚
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 4</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-message ar">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #27AE60, #2ECC71);">خ</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">خالد</span>
+                                <span class="msg-badge">متقدم</span>
+                                <span class="msg-time">11:05</span>
+                            </div>
+                            <div class="msg-text">
+                                @نور <span class="lang-highlight">"كان"</span> تدل على الزمن الماضي فقط، بينما <span class="lang-highlight">"أصبح"</span> تدل على التحول والتغير. مثال: كان الطالب مجتهداً → أصبح الطالب مجتهداً (تحول من حال لحال) ✨
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 11</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="ar-chatInput" placeholder="شارك سؤالك أو تجربتك..." onkeypress="handleChatKey(event, 'ar')">
+                        <div class="input-actions">
+                            <button onclick="addEmoji('ar')"><i class="far fa-smile"></i></button>
+                            <button onclick="attachFile('ar')"><i class="fas fa-paperclip"></i></button>
+                        </div>
+                    </div>
+                    <button class="chat-send-btn" onclick="sendMessage('ar')"><i class="fas fa-paper-plane"></i></button>
+                </div>
+
+                <div class="chat-quick-replies">
+                    <button onclick="quickReply('ar', 'هل يمكنكم مساعدتي؟')">🙏 هل يمكنكم مساعدتي؟</button>
+                    <button onclick="quickReply('ar', 'شكراً على الشرح!')">❤️ شكراً على الشرح!</button>
+                    <button onclick="quickReply('ar', 'لدي سؤال في القواعد')">📝 سؤال في القواعد</button>
+                    <button onclick="quickReply('ar', 'من يريد التدرب معي؟')">💬 من يريد التدرب معي؟</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+        <!-- ===== غرفة استقبال الجدد ===== -->
+        <div class="room-view" id="room-welcome">
+            <div class="room-header-card" style="background: linear-gradient(145deg, rgba(255,107,107,0.15), rgba(255,107,107,0.05)); border: 1px solid rgba(255,107,107,0.15);">
+                <div class="room-icon" style="background: linear-gradient(135deg, #FF6B6B, #FF8E8E);">🎌</div>
+                <div class="room-info">
+                    <h2 style="color: var(--welcome);">استقبال الجدد</h2>
+                    <p>دليل المبتدئين · اختبار المستوى · قواعد الساحة · التعريف بالمجتمع</p>
+                </div>
+                <div class="room-stats">
+                    <div class="stat-num" style="color: var(--welcome);">124</div>
+                    <div class="stat-label">نشط</div>
+                </div>
+            </div>
+
+            <div class="corner-tabs">
+                <button class="corner-tab active-welcome" onclick="switchCorner('welcome', 0, this)" style="background: linear-gradient(135deg, #FF6B6B, #FF8E8E); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(255,107,107,0.3);">
+                    <span class="tab-icon">📋</span>
+                    <span>دليل</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('welcome', 1, this)">
+                    <span class="tab-icon">🎯</span>
+                    <span>اختبار</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('welcome', 2, this)">
+                    <span class="tab-icon">📜</span>
+                    <span>القواعد</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('welcome', 3, this)">
+                    <span class="tab-icon">👋</span>
+                    <span>تعريف</span>
+                </button>
+            </div>
+
+            <!-- ركن الدليل -->
+            <div class="corner-content active" id="welcome-corner0">
+                <div class="daily-card" style="background: linear-gradient(145deg, rgba(255,107,107,0.08), rgba(255,107,107,0.02)); border: 1px solid rgba(255,107,107,0.1);">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-star" style="color: var(--accent);"></i> مرحباً بك في أوتاكو جو!</h3>
+                        <span class="date-tag" style="background: rgba(255,107,107,0.15); color: var(--welcome);">دليل المبتدئين</span>
+                    </div>
+                    <div class="greetings-list">
+                        <div class="greeting-item" style="border-color: rgba(255,107,107,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,107,107,0.05));">1️⃣</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--welcome);">اختر غرفتك المفضلة</div>
+                                <div class="greeting-reading">استكشف غرف التعلم: يابانية، إنجليزية، عربية، رسم، ألعاب، موسيقى</div>
+                                <div class="greeting-ar">كل غرفة لها محتوى تعليمي متخصص وبوت ذكي</div>
+                            </div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(255,107,107,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,107,107,0.05));">2️⃣</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--welcome);">اختبر مستواك</div>
+                                <div class="greeting-reading">اختبار سريع لتحديد مستواك في اللغة أو المهارة المختارة</div>
+                                <div class="greeting-ar">احصل على توصيات مخصصة بناءً على نتيجتك</div>
+                            </div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(255,107,107,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,107,107,0.05));">3️⃣</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--welcome);">تفاعل مع المجتمع</div>
+                                <div class="greeting-reading">شارك في المحادثات، اطرح أسئلة، وساعد الآخرين</div>
+                                <div class="greeting-ar">اكسب نقاط الخبرة (XP) وارتقِ في المستويات</div>
+                            </div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(255,107,107,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,107,107,0.05));">4️⃣</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--welcome);">استخدم البوت التعليمي</div>
+                                <div class="greeting-reading">بوت ذكي يساعدك في التعلم والتدريب اليومي</div>
+                                <div class="greeting-ar">اطلب شرحاً، تمريناً، أو محادثة تدريبية</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="level-card" style="background: linear-gradient(145deg, rgba(255,107,107,0.08), rgba(255,107,107,0.02)); border: 1px solid rgba(255,107,107,0.12);">
+                    <div class="level-icon">🌱</div>
+                    <div class="level-title">مستوى البرعم (المستوى 1)</div>
+                    <div class="level-desc">أهلاً بك! ابدأ رحلتك بتعلم أساسيات غرفتك المختارة</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 15%; background: linear-gradient(90deg, var(--accent), var(--welcome));"></div>
+                    </div>
+                    <div class="progress-text">15% - 45/300 نقطة للمستوى التالي</div>
+                </div>
+            </div>
+
+            <!-- ركن الاختبار -->
+            <div class="corner-content" id="welcome-corner1">
+                <div class="quiz-card">
+                    <div class="quiz-header">
+                        <h4><i class="fas fa-brain" style="color: var(--accent);"></i> اختبار تحديد المستوى</h4>
+                        <span class="quiz-counter">س 1 / 3</span>
+                    </div>
+                    <div class="quiz-question" style="color: var(--welcome);">ما هو مجال اهتمامك الرئيسي؟</div>
+                    <div class="quiz-options">
+                        <button onclick="checkAnswer(this, true)">A) تعلم اللغات (يابانية/إنجليزية/عربية)</button>
+                        <button onclick="checkAnswer(this, false)">B) الرسم والفنون</button>
+                        <button onclick="checkAnswer(this, false)">C) الألعاب والموسيقى</button>
+                        <button onclick="checkAnswer(this, false)">D) كل ما سبق!</button>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0 12px;">
+                    <span style="font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-trophy" style="color: var(--accent);"></i> نتائج الاختبار السابقة
+                    </span>
+                </div>
+                <div class="news-item" style="border-color: rgba(255,107,107,0.1);">
+                    <div class="news-icon" style="background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,107,107,0.05));">📝</div>
+                    <div class="news-content">
+                        <div class="news-title">اختبار اللغة اليابانية</div>
+                        <div class="news-desc">المستوى: مبتدئ (N5) - 65%</div>
+                    </div>
+                    <div class="news-time">منذ يومين</div>
+                </div>
+            </div>
+
+            <!-- ركن القواعد -->
+            <div class="corner-content" id="welcome-corner2">
+                <div class="daily-card" style="background: linear-gradient(145deg, rgba(255,107,107,0.08), rgba(255,107,107,0.02)); border: 1px solid rgba(255,107,107,0.1);">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-shield-alt" style="color: var(--welcome);"></i> قواعد ساحة الأوتاكو</h3>
+                        <span class="date-tag" style="background: rgba(255,107,107,0.15); color: var(--welcome);">إلزامية</span>
+                    </div>
+                    <div class="greetings-list">
+                        <div class="greeting-item" style="border-color: rgba(255,107,107,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,107,107,0.05));">🤝</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--welcome);">احترام الجميع</div>
+                                <div class="greeting-reading">لا للتنمر أو الإهانة بأي شكل</div>
+                                <div class="greeting-ar">مجتمعنا يقوم على الاحترام المتبادل</div>
+                            </div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(255,107,107,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,107,107,0.05));">📵</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--welcome);">لا للحرق</div>
+                                <div class="greeting-reading">منع حرق أحداث الأنمي/المانجا دون تحذير</div>
+                                <div class="greeting-ar">استخدم علامة التحذير ⚠️ Spoiler</div>
+                            </div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(255,107,107,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,107,107,0.05));">🎯</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--welcome);">التركيز على التعلم</div>
+                                <div class="greeting-reading">الغرف التعليمية للتعلم فقط</div>
+                                <div class="greeting-ar">استخدم ساحة الأوتاكو للمحادثات العامة</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن التعريف -->
+            <div class="corner-content" id="welcome-corner3">
+                <div class="conversation-card">
+                    <div class="conv-title"><i class="fas fa-users"></i> قالب التعريف بالنفس</div>
+                    <div class="chat-bubble" style="border-color: rgba(255,107,107,0.1);">
+                        <div class="bubble-avatar" style="background: linear-gradient(135deg, #FF6B6B, #FF8E8E);">أ</div>
+                        <div class="bubble-content">
+                            <div class="bubble-target" style="color: var(--welcome);">أهلاً! أنا [الاسم] 👋</div>
+                            <div class="bubble-reading">مستوىي في [اللغة/المهارة]: [المستوى]</div>
+                            <div class="bubble-ar">أنمي/مانجا مفضلة: [العنوان]</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="daily-card" style="background: linear-gradient(145deg, rgba(255,107,107,0.08), rgba(255,107,107,0.02)); border: 1px solid rgba(255,107,107,0.1);">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-fire" style="color: var(--welcome);"></i> الأوتاكو الجدد هذا الأسبوع</h3>
+                        <span class="date-tag" style="background: rgba(255,107,107,0.15); color: var(--welcome);">+12 جديد</span>
+                    </div>
+                    <div class="chars-grid">
+                        <div class="char-item" style="border-color: rgba(255,107,107,0.1);">
+                            <div class="char-symbol" style="color: var(--welcome);">🌸</div>
+                            <div class="char-reading">سارة</div>
+                            <div class="char-meaning">مستوى: مبتدئ</div>
+                        </div>
+                        <div class="char-item" style="border-color: rgba(255,107,107,0.1);">
+                            <div class="char-symbol" style="color: var(--welcome);">⚔️</div>
+                            <div class="char-reading">خالد</div>
+                            <div class="char-meaning">مستوى: متوسط</div>
+                        </div>
+                        <div class="char-item" style="border-color: rgba(255,107,107,0.1);">
+                            <div class="char-symbol" style="color: var(--welcome);">🎨</div>
+                            <div class="char-reading">نور</div>
+                            <div class="char-meaning">مستوى: متقدم</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- صندوق الرسائل -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3><i class="fas fa-comments" style="color: var(--secondary);"></i> نقاش الأعضاء الجدد</h3>
+                    <div class="online-count">24 متصل</div>
+                </div>
+                <div class="chat-box" id="welcome-chatBox">
+                    <div class="chat-divider"><span>اليوم</span></div>
+                    <div class="chat-message">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #FF6B6B, #FF8E8E);">أ</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">أحمد</span>
+                                <span class="msg-badge" style="background: rgba(255,107,107,0.2); color: var(--welcome);">جديد</span>
+                                <span class="msg-time">09:00</span>
+                            </div>
+                            <div class="msg-text">
+                                أهلاً بالجميع! أنا جديد هنا وأحب أنمي ناروتو وون بيس 🍥⚔️
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 5</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="welcome-chatInput" placeholder="قدم نفسك..." onkeypress="handleChatKey(event, 'welcome')">
+                        <div class="input-actions">
+                            <button onclick="addEmoji('welcome')"><i class="far fa-smile"></i></button>
+                            <button onclick="attachFile('welcome')"><i class="fas fa-paperclip"></i></button>
+                        </div>
+                    </div>
+                    <button class="chat-send-btn" onclick="sendMessage('welcome')"><i class="fas fa-paper-plane"></i></button>
+                </div>
+                <div class="chat-quick-replies">
+                    <button onclick="quickReply('welcome', 'أهلاً! أنا جديد')">👋 أهلاً! أنا جديد</button>
+                    <button onclick="quickReply('welcome', 'ما هي أفضل غرفة للمبتدئين؟')">🎯 أفضل غرفة للمبتدئين؟</button>
+                    <button onclick="quickReply('welcome', 'أحب أنمي ___')">🎌 أحب أنمي ___</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ===== غرفة تعلم الرسم ===== -->
+        <div class="room-view" id="room-drawing">
+            <div class="room-header-card" style="background: linear-gradient(145deg, rgba(155,89,182,0.15), rgba(155,89,182,0.05)); border: 1px solid rgba(155,89,182,0.15);">
+                <div class="room-icon" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);">🎨</div>
+                <div class="room-info">
+                    <h2 style="color: var(--art);">تعلم الرسم</h2>
+                    <p>رسم الأنمي · الشخصيات · الخلفيات · التلوين الرقمي · تحديات أسبوعية</p>
+                </div>
+                <div class="room-stats">
+                    <div class="stat-num" style="color: var(--art);">67</div>
+                    <div class="stat-label">رسام</div>
+                </div>
+            </div>
+
+            <div class="corner-tabs">
+                <button class="corner-tab active-art" onclick="switchCorner('drawing', 0, this)" style="background: linear-gradient(135deg, #9B59B6, #8E44AD); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(155,89,182,0.3);">
+                    <span class="tab-icon">✏️</span>
+                    <span>الدروس</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('drawing', 1, this)">
+                    <span class="tab-icon">🖼️</span>
+                    <span>معرض</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('drawing', 2, this)">
+                    <span class="tab-icon">🎯</span>
+                    <span>تحديات</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('drawing', 3, this)">
+                    <span class="tab-icon">📊</span>
+                    <span>مستواي</span>
+                </button>
+            </div>
+
+            <!-- ركن الدروس -->
+            <div class="corner-content active" id="drawing-corner0">
+                <div class="daily-card" style="background: linear-gradient(145deg, rgba(155,89,182,0.08), rgba(155,89,182,0.02)); border: 1px solid rgba(155,89,182,0.1);">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-star" style="color: var(--accent);"></i> درس اليوم</h3>
+                        <span class="date-tag" style="background: rgba(155,89,182,0.15); color: var(--art);">20 مايو</span>
+                    </div>
+                    <div class="greetings-list">
+                        <div class="greeting-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(155,89,182,0.05));">👁️</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--art);">رسم عيون الأنمي</div>
+                                <div class="greeting-reading">الدرس 1: الأشكال الأساسية والتعبيرات</div>
+                                <div class="greeting-ar">تعلم رسم 5 أنواع مختلفة من العيون</div>
+                            </div>
+                            <div class="greeting-play" style="background: rgba(155,89,182,0.15); border: 1px solid rgba(155,89,182,0.3); color: var(--art);" onclick="showToast('🎨', 'جاري فتح الدرس...')"><i class="fas fa-play"></i></div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(155,89,182,0.05));">👤</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--art);">تناسق الوجه</div>
+                                <div class="greeting-reading">الدرس 2: نسب الوجه والزوايا</div>
+                                <div class="greeting-ar">قواعد تناسق الوجه في الأنمي</div>
+                            </div>
+                            <div class="greeting-play" style="background: rgba(155,89,182,0.15); border: 1px solid rgba(155,89,182,0.3); color: var(--art);" onclick="showToast('🎨', 'جاري فتح الدرس...')"><i class="fas fa-play"></i></div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(155,89,182,0.05));">💇</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--art);">رسم الشعر</div>
+                                <div class="greeting-reading">الدرس 3: الخصلات والحركة والظلال</div>
+                                <div class="greeting-ar">تقنيات رسم الشعر الديناميكي</div>
+                            </div>
+                            <div class="greeting-play" style="background: rgba(155,89,182,0.15); border: 1px solid rgba(155,89,182,0.3); color: var(--art);" onclick="showToast('🎨', 'جاري فتح الدرس...')"><i class="fas fa-play"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="daily-card" style="background: linear-gradient(145deg, rgba(155,89,182,0.08), rgba(155,89,182,0.02)); border: 1px solid rgba(155,89,182,0.1);">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-palette" style="color: var(--art);"></i> أدوات الرسم</h3>
+                        <span class="date-tag" style="background: rgba(155,89,182,0.15); color: var(--art);">موصى بها</span>
+                    </div>
+                    <div class="chars-grid">
+                        <div class="char-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="char-symbol" style="color: var(--art);">🖊️</div>
+                            <div class="char-reading">قلم رصاص</div>
+                            <div class="char-meaning">HB-2B للتخطيط</div>
+                        </div>
+                        <div class="char-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="char-symbol" style="color: var(--art);">🖌️</div>
+                            <div class="char-reading">فرشاة</div>
+                            <div class="char-meaning">تلوين دقيق</div>
+                        </div>
+                        <div class="char-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="char-symbol" style="color: var(--art);">💻</div>
+                            <div class="char-reading">رقمي</div>
+                            <div class="char-meaning">Procreate/PS</div>
+                        </div>
+                        <div class="char-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="char-symbol" style="color: var(--art);">📐</div>
+                            <div class="char-reading">مسطرة</div>
+                            <div class="char-meaning">للمنظور</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المعرض -->
+            <div class="corner-content" id="drawing-corner1">
+                <div class="sentence-card" style="border-color: rgba(155,89,182,0.1);">
+                    <span class="sentence-level" style="background: rgba(155,89,182,0.15); color: var(--art);">⭐ مميز</span>
+                    <div class="sentence-target" style="color: var(--art);">رسمة الأسبوع</div>
+                    <div class="sentence-reading">by @سارة_الرسامة</div>
+                    <div class="sentence-ar">شخصية أنمي أصلية - تفاصيل مذهلة في العيون والشعر!</div>
+                    <div class="sentence-tags">
+                        <span>🎨 رقمي</span>
+                        <span>👁️ عيون</span>
+                        <span>🏆 تحدي</span>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0; text-align: center;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">📌 أعمال المجتمع</span>
+                </div>
+                <div class="shortcut-grid">
+                    <div class="shortcut-item">
+                        <div class="short-form">🖼️</div>
+                        <div class="short-full">معرض الأعمال</div>
+                        <div class="short-meaning">تصفح أعمال الأعضاء</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">❤️</div>
+                        <div class="short-full">التصويت</div>
+                        <div class="short-meaning">صوت لأفضل رسمة</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">📤</div>
+                        <div class="short-full">ارفع رسمتك</div>
+                        <div class="short-meaning">شارك تقدمك</div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="short-form">💬</div>
+                        <div class="short-full">تعليقات</div>
+                        <div class="short-meaning">احصل على نصائح</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن التحديات -->
+            <div class="corner-content" id="drawing-corner2">
+                <div class="level-card" style="background: linear-gradient(145deg, rgba(155,89,182,0.08), rgba(155,89,182,0.02)); border: 1px solid rgba(155,89,182,0.12);">
+                    <div class="level-icon">🏆</div>
+                    <div class="level-title">تحدي الأسبوع: رسم شخصية أنمي</div>
+                    <div class="level-desc">الموضوع: شخصية من عالم ناروتو بأسلوبك الخاص</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 45%; background: linear-gradient(90deg, var(--accent), var(--art));"></div>
+                    </div>
+                    <div class="progress-text">45% - 9/20 مشاركة</div>
+                </div>
+
+                <div class="quiz-card">
+                    <div class="quiz-header">
+                        <h4><i class="fas fa-palette" style="color: var(--art);"></i> تحدي سريع</h4>
+                        <span class="quiz-counter">س 1 / 3</span>
+                    </div>
+                    <div class="quiz-question" style="color: var(--art);">ما هي نسبة رأس الشخصية الأنمي مقارنة بالجسم؟</div>
+                    <div class="quiz-options">
+                        <button onclick="checkAnswer(this, false)">A) 1:4</button>
+                        <button onclick="checkAnswer(this, true)">B) 1:7 (الواقعي) أو 1:5 (الشيبي)</button>
+                        <button onclick="checkAnswer(this, false)">C) 1:10</button>
+                        <button onclick="checkAnswer(this, false)">D) 1:2</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المستوى -->
+            <div class="corner-content" id="drawing-corner3">
+                <div class="level-card" style="background: linear-gradient(145deg, rgba(155,89,182,0.08), rgba(155,89,182,0.02)); border: 1px solid rgba(155,89,182,0.12);">
+                    <div class="level-icon">🥉</div>
+                    <div class="level-title">مستوى الرسام المبتدئ</div>
+                    <div class="level-desc">أنت تتعلم الأساسيات! استمر في التمرين</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 40%; background: linear-gradient(90deg, var(--accent), var(--art));"></div>
+                    </div>
+                    <div class="progress-text">40% - 80/200 نقطة للمستوى التالي</div>
+                </div>
+
+                <div style="margin: 16px 0 12px;">
+                    <span style="font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-bell" style="color: var(--accent);"></i> أخبار مستواك
+                    </span>
+                </div>
+                <div class="news-item" style="border-color: rgba(155,89,182,0.1);">
+                    <div class="news-icon" style="background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(155,89,182,0.05));">🎯</div>
+                    <div class="news-content">
+                        <div class="news-title">إنجاز جديد!</div>
+                        <div class="news-desc">أكملت درس "عيون الأنمي" بنجاح</div>
+                    </div>
+                    <div class="news-time">اليوم</div>
+                </div>
+            </div>
+
+            <!-- صندوق الرسائل -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3><i class="fas fa-comments" style="color: var(--secondary);"></i> نقاش الرسامين</h3>
+                    <div class="online-count">18 متصل</div>
+                </div>
+                <div class="chat-box" id="drawing-chatBox">
+                    <div class="chat-divider"><span>اليوم</span></div>
+                    <div class="chat-message">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);">س</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">سارة</span>
+                                <span class="msg-badge" style="background: rgba(155,89,182,0.2); color: var(--art);">رسام</span>
+                                <span class="msg-time">14:00</span>
+                            </div>
+                            <div class="msg-text">
+                                شاركتُ رسمتي الجديدة في المعرض! أحتاج نصائحكم في تلوين الشعر 🎨
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 8</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="drawing-chatInput" placeholder="شارك رسمتك أو اسأل..." onkeypress="handleChatKey(event, 'drawing')">
+                        <div class="input-actions">
+                            <button onclick="addEmoji('drawing')"><i class="far fa-smile"></i></button>
+                            <button onclick="attachFile('drawing')"><i class="fas fa-paperclip"></i></button>
+                        </div>
+                    </div>
+                    <button class="chat-send-btn" onclick="sendMessage('drawing')"><i class="fas fa-paper-plane"></i></button>
+                </div>
+                <div class="chat-quick-replies">
+                    <button onclick="quickReply('drawing', 'أحتاج نصيحة في ___')">🎨 نصيحة في الرسم</button>
+                    <button onclick="quickReply('drawing', 'شاركت رسمتك!')">🖼️ شاركت رسمتك!</button>
+                    <button onclick="quickReply('drawing', 'ما أفضل أدوات الرسم؟')">✏️ أفضل الأدوات؟</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ===== غرفة الألعاب ===== -->
+        <div class="room-view" id="room-games">
+            <div class="room-header-card" style="background: linear-gradient(145deg, rgba(243,156,18,0.15), rgba(243,156,18,0.05)); border: 1px solid rgba(243,156,18,0.15);">
+                <div class="room-icon" style="background: linear-gradient(135deg, #F39C12, #E67E22);">🎮</div>
+                <div class="room-info">
+                    <h2 style="color: var(--games);">الألعاب</h2>
+                    <p>أخبار الألعاب · تصنيف · غرف لعب · أنمي ألعاب · JRPG · تقييمات</p>
+                </div>
+                <div class="room-stats">
+                    <div class="stat-num" style="color: var(--games);">234</div>
+                    <div class="stat-label">لاعب</div>
+                </div>
+            </div>
+
+            <div class="corner-tabs">
+                <button class="corner-tab active-games" onclick="switchCorner('games', 0, this)" style="background: linear-gradient(135deg, #F39C12, #E67E22); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(243,156,18,0.3);">
+                    <span class="tab-icon">📰</span>
+                    <span>أخبار</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('games', 1, this)">
+                    <span class="tab-icon">🏆</span>
+                    <span>تصنيف</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('games', 2, this)">
+                    <span class="tab-icon">🎲</span>
+                    <span>غرف لعب</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('games', 3, this)">
+                    <span class="tab-icon">📊</span>
+                    <span>مستواي</span>
+                </button>
+            </div>
+
+            <!-- ركن الأخبار -->
+            <div class="corner-content active" id="games-corner0">
+                <div class="news-item" style="border-color: rgba(243,156,18,0.1);">
+                    <div class="news-icon" style="background: linear-gradient(135deg, rgba(243,156,18,0.2), rgba(243,156,18,0.05));">⚔️</div>
+                    <div class="news-content">
+                        <div class="news-title">Genshin Impact: تحديث جديد!</div>
+                        <div class="news-desc">شخصية أنمي جديدة ومنطقة جديدة متاحة الآن</div>
+                    </div>
+                    <div class="news-time">منذ ساعة</div>
+                </div>
+                <div class="news-item" style="border-color: rgba(243,156,18,0.1);">
+                    <div class="news-icon" style="background: linear-gradient(135deg, rgba(243,156,18,0.2), rgba(243,156,18,0.05));">🗡️</div>
+                    <div class="news-content">
+                        <div class="news-title">Final Fantasy XVI: تقييم الأعضاء</div>
+                        <div class="news-desc">متوسط التقييم: 9.2/10 من 45 لاعب</div>
+                    </div>
+                    <div class="news-time">اليوم</div>
+                </div>
+                <div class="news-item" style="border-color: rgba(243,156,18,0.1);">
+                    <div class="news-icon" style="background: linear-gradient(135deg, rgba(243,156,18,0.2), rgba(243,156,18,0.05));">🎌</div>
+                    <div class="news-content">
+                        <div class="news-title">أنمي ألعاب قادم: Sword Art Online</div>
+                        <div class="news-desc">إعلان عن لعبة VR جديدة في المؤتمر القادم</div>
+                    </div>
+                    <div class="news-time">أمس</div>
+                </div>
+            </div>
+
+            <!-- ركن التصنيف -->
+            <div class="corner-content" id="games-corner1">
+                <div class="daily-card" style="background: linear-gradient(145deg, rgba(243,156,18,0.08), rgba(243,156,18,0.02)); border: 1px solid rgba(243,156,18,0.1);">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-trophy" style="color: var(--games);"></i> أفضل الألعاب هذا الشهر</h3>
+                        <span class="date-tag" style="background: rgba(243,156,18,0.15); color: var(--games);">تقييم الأعضاء</span>
+                    </div>
+                    <div class="greetings-list">
+                        <div class="greeting-item" style="border-color: rgba(243,156,18,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(243,156,18,0.2), rgba(243,156,18,0.05));">🥇</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--games);">Genshin Impact</div>
+                                <div class="greeting-reading">تقييم: 9.5/10 · 120 تقييم</div>
+                                <div class="greeting-ar">عالم مفتوح · أنمي · مغامرة</div>
+                            </div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(243,156,18,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(243,156,18,0.2), rgba(243,156,18,0.05));">🥈</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--games);">Honkai: Star Rail</div>
+                                <div class="greeting-reading">تقييم: 9.3/10 · 89 تقييم</div>
+                                <div class="greeting-ar">JRPG · فضاء · استراتيجي</div>
+                            </div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(243,156,18,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(243,156,18,0.2), rgba(243,156,18,0.05));">🥉</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--games);">Persona 5 Royal</div>
+                                <div class="greeting-reading">تقييم: 9.1/10 · 67 تقييم</div>
+                                <div class="greeting-ar">أنمي · JRPG · كلاسيكي</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن غرف اللعب -->
+            <div class="corner-content" id="games-corner2">
+                <div class="sentence-card" style="border-color: rgba(243,156,18,0.1);">
+                    <span class="sentence-level" style="background: rgba(243,156,18,0.15); color: var(--games);">🔥 نشط</span>
+                    <div class="sentence-target" style="color: var(--games);">غرفة Genshin - فريق 1</div>
+                    <div class="sentence-reading">اللعبة: Genshin Impact · اللاعبون: 3/4</div>
+                    <div class="sentence-ar">المستوى المطلوب: 40+ · المنطقة: Liyue</div>
+                    <div class="sentence-tags">
+                        <span>⚔️ مغامرة</span>
+                        <span>👥 تعاوني</span>
+                        <span>🎌 أنمي</span>
+                    </div>
+                </div>
+                <div class="sentence-card" style="border-color: rgba(243,156,18,0.1);">
+                    <span class="sentence-level" style="background: rgba(243,156,18,0.15); color: var(--games);">🎯 متاح</span>
+                    <div class="sentence-target" style="color: var(--games);">غرفة دراسة الأنمي</div>
+                    <div class="sentence-reading">النشاط: مشاهدة + نقاش · اللاعبون: 1/8</div>
+                    <div class="sentence-ar">الموضوع: Attack on Titan - الموسم الأخير</div>
+                    <div class="sentence-tags">
+                        <span>📺 مشاهدة</span>
+                        <span>💬 نقاش</span>
+                        <span>🍿 فشار</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المستوى -->
+            <div class="corner-content" id="games-corner3">
+                <div class="level-card" style="background: linear-gradient(145deg, rgba(243,156,18,0.08), rgba(243,156,18,0.02)); border: 1px solid rgba(243,156,18,0.12);">
+                    <div class="level-icon">🎮</div>
+                    <div class="level-title">مستوى اللاعب المخضرم</div>
+                    <div class="level-desc">لعبت 15 لعبة أنمي هذا العام!</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 72%; background: linear-gradient(90deg, var(--accent), var(--games));"></div>
+                    </div>
+                    <div class="progress-text">72% - 360/500 نقطة للمستوى التالي</div>
+                </div>
+            </div>
+
+            <!-- صندوق الرسائل -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3><i class="fas fa-comments" style="color: var(--secondary);"></i> نقاش اللاعبين</h3>
+                    <div class="online-count">45 متصل</div>
+                </div>
+                <div class="chat-box" id="games-chatBox">
+                    <div class="chat-divider"><span>اليوم</span></div>
+                    <div class="chat-message">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #F39C12, #E67E22);">م</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">محمد</span>
+                                <span class="msg-badge" style="background: rgba(243,156,18,0.2); color: var(--games);">لاعب</span>
+                                <span class="msg-time">16:00</span>
+                            </div>
+                            <div class="msg-text">
+                                من يريد الانضمام لفريق Genshin؟ نحتاج داعم 💪
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 6</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="games-chatInput" placeholder="شارك خبر أو ابحث عن فريق..." onkeypress="handleChatKey(event, 'games')">
+                        <div class="input-actions">
+                            <button onclick="addEmoji('games')"><i class="far fa-smile"></i></button>
+                            <button onclick="attachFile('games')"><i class="fas fa-paperclip"></i></button>
+                        </div>
+                    </div>
+                    <button class="chat-send-btn" onclick="sendMessage('games')"><i class="fas fa-paper-plane"></i></button>
+                </div>
+                <div class="chat-quick-replies">
+                    <button onclick="quickReply('games', 'من يريد اللعب؟')">🎮 من يريد اللعب؟</button>
+                    <button onclick="quickReply('games', 'تقييمي للعبة ___')">⭐ تقييمي للعبة</button>
+                    <button onclick="quickReply('games', 'نصيحة في ___')">💡 نصيحة</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ===== غرفة الموسيقى ===== -->
+        <div class="room-view" id="room-music">
+            <div class="room-header-card" style="background: linear-gradient(145deg, rgba(233,30,99,0.15), rgba(233,30,99,0.05)); border: 1px solid rgba(233,30,99,0.15);">
+                <div class="room-icon" style="background: linear-gradient(135deg, #E91E63, #C2185B);">🎵</div>
+                <div class="room-info">
+                    <h2 style="color: var(--music);">الموسيقى</h2>
+                    <p>Openings · Endings · OST · استماع جماعي · تقييم · playlists</p>
+                </div>
+                <div class="room-stats">
+                    <div class="stat-num" style="color: var(--music);">156</div>
+                    <div class="stat-label">مستمع</div>
+                </div>
+            </div>
+
+            <div class="corner-tabs">
+                <button class="corner-tab active-music" onclick="switchCorner('music', 0, this)" style="background: linear-gradient(135deg, #E91E63, #C2185B); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(233,30,99,0.3);">
+                    <span class="tab-icon">🎶</span>
+                    <span>أغاني</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('music', 1, this)">
+                    <span class="tab-icon">🎧</span>
+                    <span>استماع</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('music', 2, this)">
+                    <span class="tab-icon">📋</span>
+                    <span>قوائم</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('music', 3, this)">
+                    <span class="tab-icon">📊</span>
+                    <span>مستواي</span>
+                </button>
+            </div>
+
+            <!-- ركن الأغاني -->
+            <div class="corner-content active" id="music-corner0">
+                <div class="daily-card" style="background: linear-gradient(145deg, rgba(233,30,99,0.08), rgba(233,30,99,0.02)); border: 1px solid rgba(233,30,99,0.1);">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-fire" style="color: var(--music);"></i> الأكثر شهرة هذا الأسبوع</h3>
+                        <span class="date-tag" style="background: rgba(233,30,99,0.15); color: var(--music);">Top 10</span>
+                    </div>
+                    <div class="greetings-list">
+                        <div class="greeting-item" style="border-color: rgba(233,30,99,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(233,30,99,0.2), rgba(233,30,99,0.05));">🥇</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--music);">Gurenge - LiSA</div>
+                                <div class="greeting-reading">Demon Slayer Opening · 2.3M استماع</div>
+                                <div class="greeting-ar">تقييم: 9.8/10 · 450 تصويت</div>
+                            </div>
+                            <div class="greeting-play" style="background: rgba(233,30,99,0.15); border: 1px solid rgba(233,30,99,0.3); color: var(--music);" onclick="showToast('🎵', 'جاري التشغيل...')"><i class="fas fa-play"></i></div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(233,30,99,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(233,30,99,0.2), rgba(233,30,99,0.05));">🥈</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--music);">Unravel - TK</div>
+                                <div class="greeting-reading">Tokyo Ghoul Opening · 1.8M استماع</div>
+                                <div class="greeting-ar">تقييم: 9.6/10 · 380 تصويت</div>
+                            </div>
+                            <div class="greeting-play" style="background: rgba(233,30,99,0.15); border: 1px solid rgba(233,30,99,0.3); color: var(--music);" onclick="showToast('🎵', 'جاري التشغيل...')"><i class="fas fa-play"></i></div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(233,30,99,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(233,30,99,0.2), rgba(233,30,99,0.05));">🥉</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--music);">The Rumbling - SiM</div>
+                                <div class="greeting-reading">Attack on Titan Final · 1.5M استماع</div>
+                                <div class="greeting-ar">تقييم: 9.5/10 · 320 تصويت</div>
+                            </div>
+                            <div class="greeting-play" style="background: rgba(233,30,99,0.15); border: 1px solid rgba(233,30,99,0.3); color: var(--music);" onclick="showToast('🎵', 'جاري التشغيل...')"><i class="fas fa-play"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن الاستماع الجماعي -->
+            <div class="corner-content" id="music-corner1">
+                <div class="level-card" style="background: linear-gradient(145deg, rgba(233,30,99,0.08), rgba(233,30,99,0.02)); border: 1px solid rgba(233,30,99,0.12);">
+                    <div class="level-icon">🎧</div>
+                    <div class="level-title">غرفة الاستماع الجماعي</div>
+                    <div class="level-desc">الآن: Gurenge - LiSA · 24 مستمع</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 65%; background: linear-gradient(90deg, var(--accent), var(--music));"></div>
+                    </div>
+                    <div class="progress-text">2:34 / 3:57</div>
+                </div>
+                <div style="text-align: center; margin-top: 12px;">
+                    <button style="background: linear-gradient(135deg, #E91E63, #C2185B); border: none; border-radius: 14px; padding: 12px 24px; color: white; font-family: 'Tajawal', sans-serif; font-weight: 700; cursor: pointer;" onclick="showToast('🎵', 'انضممت للاستماع الجماعي!')">
+                        <i class="fas fa-headphones"></i> انضم للاستماع
+                    </button>
+                </div>
+            </div>
+
+            <!-- ركن القوائم -->
+            <div class="corner-content" id="music-corner2">
+                <div class="sentence-card" style="border-color: rgba(233,30,99,0.1);">
+                    <span class="sentence-level" style="background: rgba(233,30,99,0.15); color: var(--music);">❤️ مفضلتي</span>
+                    <div class="sentence-target" style="color: var(--music);">My Anime Playlist</div>
+                    <div class="sentence-reading">45 أغنية · 2.5 ساعة</div>
+                    <div class="sentence-ar">أفضل Openings و Endings من 2024-2025</div>
+                    <div class="sentence-tags">
+                        <span>🎵 OP/ED</span>
+                        <span>🔥 شونين</span>
+                        <span>🎌 كلاسيك</span>
+                    </div>
+                </div>
+                <div class="sentence-card" style="border-color: rgba(233,30,99,0.1);">
+                    <span class="sentence-level" style="background: rgba(233,30,99,0.15); color: var(--music);">📋 دراسة</span>
+                    <div class="sentence-target" style="color: var(--music);">Study with OST</div>
+                    <div class="sentence-reading">30 أغنية · 1.8 ساعة</div>
+                    <div class="sentence-ar">موسيقى هادئة من أفضل الأنمي للتركيز</div>
+                    <div class="sentence-tags">
+                        <span>📚 دراسة</span>
+                        <span>🎹 بيانو</span>
+                        <span>✨ هادئ</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المستوى -->
+            <div class="corner-content" id="music-corner3">
+                <div class="level-card" style="background: linear-gradient(145deg, rgba(233,30,99,0.08), rgba(233,30,99,0.02)); border: 1px solid rgba(233,30,99,0.12);">
+                    <div class="level-icon">🎵</div>
+                    <div class="level-title">مستوى الموسيقار</div>
+                    <div class="level-desc">استمعت لـ 120 أغنية أنمي هذا الشهر!</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 55%; background: linear-gradient(90deg, var(--accent), var(--music));"></div>
+                    </div>
+                    <div class="progress-text">55% - 275/500 نقطة للمستوى التالي</div>
+                </div>
+            </div>
+
+            <!-- صندوق الرسائل -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3><i class="fas fa-comments" style="color: var(--secondary);"></i> نقاش الموسيقى</h3>
+                    <div class="online-count">32 متصل</div>
+                </div>
+                <div class="chat-box" id="music-chatBox">
+                    <div class="chat-divider"><span>اليوم</span></div>
+                    <div class="chat-message">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #E91E63, #C2185B);">ع</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">عمر</span>
+                                <span class="msg-badge" style="background: rgba(233,30,99,0.2); color: var(--music);">موسيقار</span>
+                                <span class="msg-time">18:00</span>
+                            </div>
+                            <div class="msg-text">
+                                رأيي: أفضل Opening في التاريخ هو Unravel، ما رأيكم؟ 🎵
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 15</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="music-chatInput" placeholder="شارك رأيك في أغنية..." onkeypress="handleChatKey(event, 'music')">
+                        <div class="input-actions">
+                            <button onclick="addEmoji('music')"><i class="far fa-smile"></i></button>
+                            <button onclick="attachFile('music')"><i class="fas fa-paperclip"></i></button>
+                        </div>
+                    </div>
+                    <button class="chat-send-btn" onclick="sendMessage('music')"><i class="fas fa-paper-plane"></i></button>
+                </div>
+                <div class="chat-quick-replies">
+                    <button onclick="quickReply('music', 'أفضل Opening برأيك؟')">🎵 أفضل Opening؟</button>
+                    <button onclick="quickReply('music', 'انضم للاستماع الجماعي')">🎧 انضم للاستماع</button>
+                    <button onclick="quickReply('music', 'أضف للقائمة')">📋 أضف للقائمة</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ===== غرفة الفنون ===== -->
+        <div class="room-view" id="room-arts">
+            <div class="room-header-card" style="background: linear-gradient(145deg, rgba(155,89,182,0.15), rgba(155,89,182,0.05)); border: 1px solid rgba(155,89,182,0.15);">
+                <div class="room-icon" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);">🎨</div>
+                <div class="room-info">
+                    <h2 style="color: var(--art);">قسم الفنون</h2>
+                    <p>Fan Art · Cosplay · تصوير · تصميم · تحديات إبداعية · معرض</p>
+                </div>
+                <div class="room-stats">
+                    <div class="stat-num" style="color: var(--art);">89</div>
+                    <div class="stat-label">فنان</div>
+                </div>
+            </div>
+
+            <div class="corner-tabs">
+                <button class="corner-tab active-art" onclick="switchCorner('arts', 0, this)" style="background: linear-gradient(135deg, #9B59B6, #8E44AD); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(155,89,182,0.3);">
+                    <span class="tab-icon">🖼️</span>
+                    <span>معرض</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('arts', 1, this)">
+                    <span class="tab-icon">👘</span>
+                    <span>Cosplay</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('arts', 2, this)">
+                    <span class="tab-icon">📸</span>
+                    <span>تصوير</span>
+                </button>
+                <button class="corner-tab" onclick="switchCorner('arts', 3, this)">
+                    <span class="tab-icon">📊</span>
+                    <span>مستواي</span>
+                </button>
+            </div>
+
+            <!-- ركن المعرض -->
+            <div class="corner-content active" id="arts-corner0">
+                <div class="daily-card" style="background: linear-gradient(145deg, rgba(155,89,182,0.08), rgba(155,89,182,0.02)); border: 1px solid rgba(155,89,182,0.1);">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-star" style="color: var(--accent);"></i> الأكثر شهرة هذا الأسبوع</h3>
+                        <span class="date-tag" style="background: rgba(155,89,182,0.15); color: var(--art);">Top 5</span>
+                    </div>
+                    <div class="greetings-list">
+                        <div class="greeting-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(155,89,182,0.05));">🥇</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--art);">Fan Art: Gojo Satoru</div>
+                                <div class="greeting-reading">by @فنان_الأسبوع · 234 إعجاب</div>
+                                <div class="greeting-ar">رقمي · تفاصيل مذهلة · JJK</div>
+                            </div>
+                            <div class="greeting-play" style="background: rgba(155,89,182,0.15); border: 1px solid rgba(155,89,182,0.3); color: var(--art);" onclick="showToast('🎨', 'جاري فتح العمل...')"><i class="fas fa-eye"></i></div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(155,89,182,0.05));">🥈</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--art);">Cosplay: Nezuko</div>
+                                <div class="greeting-reading">by @نور_كوسبلاي · 189 إعجاب</div>
+                                <div class="greeting-ar">Demon Slayer · زي محترف · مكياج</div>
+                            </div>
+                            <div class="greeting-play" style="background: rgba(155,89,182,0.15); border: 1px solid rgba(155,89,182,0.3); color: var(--art);" onclick="showToast('🎨', 'جاري فتح العمل...')"><i class="fas fa-eye"></i></div>
+                        </div>
+                        <div class="greeting-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(155,89,182,0.05));">🥉</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--art);">تصوير: Tokyo Night</div>
+                                <div class="greeting-reading">by @عدسة_أنمي · 156 إعجاب</div>
+                                <div class="greeting-ar">تصوير فوتوغرافي · أنمي ستايل · طوكيو</div>
+                            </div>
+                            <div class="greeting-play" style="background: rgba(155,89,182,0.15); border: 1px solid rgba(155,89,182,0.3); color: var(--art);" onclick="showToast('🎨', 'جاري فتح العمل...')"><i class="fas fa-eye"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن Cosplay -->
+            <div class="corner-content" id="arts-corner1">
+                <div class="daily-card" style="background: linear-gradient(145deg, rgba(155,89,182,0.08), rgba(155,89,182,0.02)); border: 1px solid rgba(155,89,182,0.1);">
+                    <div class="daily-header">
+                        <h3><i class="fas fa-mask" style="color: var(--art);"></i> Cosplay الشهر</h3>
+                        <span class="date-tag" style="background: rgba(155,89,182,0.15); color: var(--art);">تحدي</span>
+                    </div>
+                    <div class="greetings-list">
+                        <div class="greeting-item" style="border-color: rgba(155,89,182,0.1);">
+                            <div class="greeting-icon" style="background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(155,89,182,0.05));">👘</div>
+                            <div class="greeting-content">
+                                <div class="greeting-target" style="color: var(--art);">الموضوع: شخصيات الشيبي</div>
+                                <div class="greeting-reading">المدة: حتى نهاية الشهر · 34 مشاركة</div>
+                                <div class="greeting-ar">صوت لأفضل Cosplay في المعرض!</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن التصوير -->
+            <div class="corner-content" id="arts-corner2">
+                <div class="sentence-card" style="border-color: rgba(155,89,182,0.1);">
+                    <span class="sentence-level" style="background: rgba(155,89,182,0.15); color: var(--art);">📸 نصيحة</span>
+                    <div class="sentence-target" style="color: var(--art);">تصوير الأنمي ستايل</div>
+                    <div class="sentence-reading">كيف تصور صوراً بأسلوب الأنمي؟</div>
+                    <div class="sentence-ar">استخدم الإضاءة الطبيعية + زوايا عالية + ألوان زاهية</div>
+                    <div class="sentence-tags">
+                        <span>📸 تصوير</span>
+                        <span>🎨 أنمي ستايل</span>
+                        <span>💡 إضاءة</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ركن المستوى -->
+            <div class="corner-content" id="arts-corner3">
+                <div class="level-card" style="background: linear-gradient(145deg, rgba(155,89,182,0.08), rgba(155,89,182,0.02)); border: 1px solid rgba(155,89,182,0.12);">
+                    <div class="level-icon">🎨</div>
+                    <div class="level-title">مستوى الفنان المبدع</div>
+                    <div class="level-desc">شاركت 12 عملاً هذا الشهر!</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 60%; background: linear-gradient(90deg, var(--accent), var(--art));"></div>
+                    </div>
+                    <div class="progress-text">60% - 300/500 نقطة للمستوى التالي</div>
+                </div>
+            </div>
+
+            <!-- صندوق الرسائل -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3><i class="fas fa-comments" style="color: var(--secondary);"></i> نقاش الفنانين</h3>
+                    <div class="online-count">22 متصل</div>
+                </div>
+                <div class="chat-box" id="arts-chatBox">
+                    <div class="chat-divider"><span>اليوم</span></div>
+                    <div class="chat-message">
+                        <div class="msg-avatar" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);">ف</div>
+                        <div class="msg-body">
+                            <div class="msg-header">
+                                <span class="msg-name">فاطمة</span>
+                                <span class="msg-badge" style="background: rgba(155,89,182,0.2); color: var(--art);">فنانة</span>
+                                <span class="msg-time">13:00</span>
+                            </div>
+                            <div class="msg-text">
+                                شاركتُ رسمتي الجديدة لشخصية من JJK! أحتاج آراءكم 🎨✨
+                            </div>
+                            <div class="msg-actions">
+                                <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 12</button>
+                                <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                                <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="arts-chatInput" placeholder="شارك عملك أو رأيك..." onkeypress="handleChatKey(event, 'arts')">
+                        <div class="input-actions">
+                            <button onclick="addEmoji('arts')"><i class="far fa-smile"></i></button>
+                            <button onclick="attachFile('arts')"><i class="fas fa-paperclip"></i></button>
+                        </div>
+                    </div>
+                    <button class="chat-send-btn" onclick="sendMessage('arts')"><i class="fas fa-paper-plane"></i></button>
+                </div>
+                <div class="chat-quick-replies">
+                    <button onclick="quickReply('arts', 'عمل رائع! 🔥')">🔥 عمل رائع!</button>
+                    <button onclick="quickReply('arts', 'أحتاج نصيحة في ___')">🎨 نصيحة</button>
+                    <button onclick="quickReply('arts', 'شاركت عملي!')">🖼️ شاركت عملي!</button>
+                </div>
+            </div>
+        </div>
+
+<!-- Toast -->
+    <div class="toast" id="toast">
+        <span class="toast-icon" id="toastIcon">🔊</span>
+        <span class="toast-text" id="toastText">جاري تشغيل النطق...</span>
+    </div>
+    <script>
+        // إنشاء النجوم
+        function createStars() {
+            const container = document.getElementById('starsBg');
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+                star.style.setProperty('--opacity', Math.random() * 0.8 + 0.2);
+                star.style.animationDelay = Math.random() * 5 + 's';
+                container.appendChild(star);
+            }
+        }
+        createStars();
+
+        // تبديل الغرف
+        function switchRoom(room) {
+            document.querySelectorAll('.room-btn').forEach(b => {
+                b.classList.remove('active-jp', 'active-en', 'active-ar', 'active-welcome', 'active-art', 'active-games', 'active-music');
+            });
+            document.querySelectorAll('.room-view').forEach(v => v.classList.remove('active'));
+
+            const btn = document.querySelector(`button[onclick="switchRoom('${room}')"]`);
+            if (btn) {
+                // Map room to active class
+                const activeClassMap = {
+                    'jp': 'active-jp', 'en': 'active-en', 'ar': 'active-ar',
+                    'welcome': 'active-welcome', 'drawing': 'active-art',
+                    'games': 'active-games', 'music': 'active-music', 'arts': 'active-art'
+                };
+                btn.classList.add(activeClassMap[room] || 'active-jp');
+            }
+
+            const roomEl = document.getElementById('room-' + room);
+            if (roomEl) roomEl.classList.add('active');
+
+            // إعادة تعيين الأركان
+            document.querySelectorAll(`#room-${room} .corner-tab`).forEach(t => {
+                t.classList.remove('active-jp', 'active-en', 'active-ar', 'active-welcome', 'active-art', 'active-games', 'active-music');
+            });
+            document.querySelectorAll(`#room-${room} .corner-content`).forEach(c => c.classList.remove('active'));
+
+            const firstTab = document.querySelector(`#room-${room} .corner-tab`);
+            if (firstTab) {
+                const activeClassMap = {
+                    'jp': 'active-jp', 'en': 'active-en', 'ar': 'active-ar',
+                    'welcome': 'active-welcome', 'drawing': 'active-art',
+                    'games': 'active-games', 'music': 'active-music', 'arts': 'active-art'
+                };
+                firstTab.classList.add(activeClassMap[room] || 'active-jp');
+            }
+
+            const firstCorner = document.getElementById(room + '-corner0');
+            if (firstCorner) firstCorner.classList.add('active');
+        }
+
+        // تبديل الأركان
+        function switchCorner(room, index, tab) {
+            document.querySelectorAll(`#room-${room} .corner-tab`).forEach(t => {
+                t.classList.remove('active-jp', 'active-en', 'active-ar', 'active-welcome', 'active-art', 'active-games', 'active-music');
+            });
+            document.querySelectorAll(`#room-${room} .corner-content`).forEach(c => c.classList.remove('active'));
+
+            const activeClassMap = {
+                'jp': 'active-jp', 'en': 'active-en', 'ar': 'active-ar',
+                'welcome': 'active-welcome', 'drawing': 'active-art',
+                'games': 'active-games', 'music': 'active-music', 'arts': 'active-art'
+            };
+            tab.classList.add(activeClassMap[room] || 'active-jp');
+            document.getElementById(room + '-corner' + index).classList.add('active');
+        }
+
+        // ===== نظام النطق الصوتي =====
+        let currentUtterance = null;
+
+        function speak(text, lang, speed) {
+            if (!window.speechSynthesis) {
+                showToast('⚠️', 'متصفحك لا يدعم النطق الصوتي');
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            utterance.rate = speed === 'slow' ? 0.5 : 0.8;
+            utterance.pitch = 1;
+            const voices = window.speechSynthesis.getVoices();
+            const voice = voices.find(v => v.lang.includes(lang.split('-')[0]));
+            if (voice) utterance.voice = voice;
+            utterance.onstart = () => showToast('🔊', 'جاري النطق...');
+            window.speechSynthesis.speak(utterance);
+            currentUtterance = utterance;
+        }
+
+        function speakJP(text, speed) { speak(text, 'ja-JP', speed); }
+        function speakEN(text, speed) { speak(text, 'en-US', speed); }
+        function speakAR(text, speed) { speak(text, 'ar-SA', speed); }
+
+        // Toast
+        function showToast(icon, text) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastIcon').textContent = icon;
+            document.getElementById('toastText').textContent = text;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // الاختبار
+        function checkAnswer(btn, isCorrect) {
+            const buttons = btn.parentElement.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+            if (isCorrect) {
+                btn.classList.add('correct');
+                showToast('✅', 'إجابة صحيحة! +10 نقاط');
+            } else {
+                btn.classList.add('wrong');
+                buttons.forEach(b => { 
+                    if (b.onclick && b.onclick.toString().includes('true')) b.classList.add('correct'); 
+                });
+                showToast('❌', 'حاول مرة أخرى! التعلم من الأخطاء مهم');
+            }
+        }
+
+        // ===== صندوق الرسائل =====
+        function sendMessage(room) {
+            const input = document.getElementById(room + '-chatInput');
+            if (!input) return;
+            const text = input.value.trim();
+            if (!text) return;
+
+            addMessage(text, 'أنت', true, room);
+            input.value = '';
+
+            setTimeout(() => {
+                const replies = {
+                    jp: [
+                        { name: 'بوت اليابانية', badge: 'بوت', text: '💡 تلميح: جرب استخدام القالب 「___はどこですか」 للسؤال عن الأماكن!', color: '#4ECDC4' },
+                        { name: 'سارة', badge: 'مبتدئ', text: 'أنا أيضاً أبحث عن شريك للتدرب! 🙋‍♀️', color: '#9B59B6' }
+                    ],
+                    en: [
+                        { name: 'Bot English', badge: 'Bot', text: '💡 Tip: Try using "Where is ___?" to ask about places!', color: '#4ECDC4' },
+                        { name: 'Fatima', badge: 'Beginner', text: 'I am also looking for a practice partner! 🙋‍♀️', color: '#9B59B6' }
+                    ],
+                    ar: [
+                        { name: 'بوت العربية', badge: 'بوت', text: '💡 تلميح: جرب استخدام "أين يقع ___؟" للسؤال عن الأماكن!', color: '#4ECDC4' },
+                        { name: 'نور', badge: 'متوسط', text: 'أنا أيضاً أبحث عن شريك للتدرب! 🙋‍♀️', color: '#9B59B6' }
+                    ],
+                    welcome: [
+                        { name: 'بوت الترحيب', badge: 'بوت', text: '🎌 مرحباً! هل تحتاج مساعدة في اختيار غرفتك؟', color: '#4ECDC4' },
+                        { name: 'أحمد', badge: 'عضو', text: 'أهلاً بك في المجتمع! 👋', color: '#9B59B6' }
+                    ],
+                    drawing: [
+                        { name: 'بوت الرسم', badge: 'بوت', text: '🎨 تلميح: ابدأ بالأشكال الأساسية قبل التفاصيل!', color: '#4ECDC4' },
+                        { name: 'سارة', badge: 'رسام', text: 'أحب رسم الأنمي! شاركنا تقدمك 🖼️', color: '#9B59B6' }
+                    ],
+                    games: [
+                        { name: 'بوت الألعاب', badge: 'بوت', text: '🎮 هل تبحث عن فريق؟ استخدم قسم غرف اللعب!', color: '#4ECDC4' },
+                        { name: 'محمد', badge: 'لاعب', text: 'من يريد اللعب معي؟ 🔥', color: '#9B59B6' }
+                    ],
+                    music: [
+                        { name: 'بوت الموسيقى', badge: 'بوت', text: '🎵 جرب الاستماع الجماعي! انضم للغرفة الآن', color: '#4ECDC4' },
+                        { name: 'عمر', badge: 'موسيقار', text: 'أفضل Opening برأيي هو Gurenge! 🎶', color: '#9B59B6' }
+                    ],
+                    arts: [
+                        { name: 'بوت الفنون', badge: 'بوت', text: '🎨 شارك عملك في المعرض واحصل على تقييم!', color: '#4ECDC4' },
+                        { name: 'فاطمة', badge: 'فنانة', text: 'أحب Cosplay! شاركونا أعمالكم 👘', color: '#9B59B6' }
+                    ]
+                };
+
+                const roomReplies = replies[room] || replies['welcome'];
+                const reply = roomReplies[Math.floor(Math.random() * roomReplies.length)];
+                addMessage(reply.text, reply.name, false, room, reply.badge, reply.color);
+            }, 2000);
+        }
+
+        function addMessage(text, name, isMe, room, badge, color) {
+            const chatBox = document.getElementById(room + '-chatBox');
+            if (!chatBox) return;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-message ' + room;
+            const initial = name.charAt(0);
+            const bgColor = isMe ? 'linear-gradient(135deg, #E74C3C, #C0392B)' : (color ? `linear-gradient(135deg, ${color}, ${color})` : 'linear-gradient(135deg, #9B59B6, #8E44AD)');
+            const badgeHtml = badge ? `<span class="msg-badge">${badge}</span>` : '';
+
+            msgDiv.innerHTML = `
+                <div class="msg-avatar" style="background: ${bgColor};">${initial}</div>
+                <div class="msg-body">
+                    <div class="msg-header">
+                        <span class="msg-name">${name}</span>
+                        ${badgeHtml}
+                        <span class="msg-time">الآن</span>
+                    </div>
+                    <div class="msg-text">${highlightLang(text, room)}</div>
+                    <div class="msg-actions">
+                        <button onclick="likeMessage(this)"><i class="far fa-heart"></i> 0</button>
+                        <button onclick="replyTo(this)"><i class="fas fa-reply"></i> رد</button>
+                        <button onclick="translateMsg(this)"><i class="fas fa-language"></i> ترجمة</button>
+                    </div>
+                </div>
+            `;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function highlightLang(text, room) {
+            if (room === 'jp') {
+                return text.replace(/「([^」]+)」/g, '<span class="lang-highlight">「$1」</span>');
+            } else if (room === 'en') {
+                return text.replace(/"([^"]+)"/g, '<span class="lang-highlight">"$1"</span>');
+            } else {
+                return text;
+            }
+        }
+
+        function handleChatKey(e, room) {
+            if (e.key === 'Enter') sendMessage(room);
+        }
+
+        function quickReply(room, text) {
+            const input = document.getElementById(room + '-chatInput');
+            if (input) {
+                input.value = text;
+                input.focus();
+            }
+        }
+
+        function likeMessage(btn) {
+            const icon = btn.querySelector('i');
+            const isLiked = icon.classList.contains('fas');
+            icon.classList.toggle('far');
+            icon.classList.toggle('fas');
+            btn.classList.toggle('liked');
+            const match = btn.textContent.match(/(\d+)/);
+            const count = match ? parseInt(match[1]) : 0;
+            btn.innerHTML = `<i class="${isLiked ? 'far' : 'fas'} fa-heart"></i> ${isLiked ? count - 1 : count + 1}`;
+        }
+
+        function replyTo(btn) {
+            const msgText = btn.closest('.msg-body').querySelector('.msg-text').textContent;
+            const room = btn.closest('.chat-message').classList.contains('jp') ? 'jp' : 
+                        btn.closest('.chat-message').classList.contains('en') ? 'en' : 
+                        btn.closest('.chat-message').classList.contains('ar') ? 'ar' : 'welcome';
+            const input = document.getElementById(room + '-chatInput');
+            if (input) {
+                input.value = `رد: "${msgText.substring(0, 30)}..." - `;
+                input.focus();
+            }
+        }
+
+        function translateMsg(btn) {
+            showToast('🌐', 'جاري الترجمة...');
+        }
+
+        function addEmoji(room) {
+            const emojis = ['😊', '😂', '❤️', '👍', '🎌', '📚', '✨', '🔥', '🎨', '🎮', '🎵', '🖼️'];
+            const input = document.getElementById(room + '-chatInput');
+            if (input) {
+                input.value += emojis[Math.floor(Math.random() * emojis.length)];
+                input.focus();
+            }
+        }
+
+        function attachFile(room) {
+            showToast('📎', 'يمكنك إرفاق صورة أو ملف صوتي');
+        }
+
+        // تحميل الأصوات
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => {
+            window.speechSynthesis.getVoices();
+        };
+    </script>
+</body>
+</html>
