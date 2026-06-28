@@ -2,13 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { JapaneseRoom } from "@/components/rooms/JapaneseRoom";
+import { EnglishRoom } from "@/components/rooms/EnglishRoom";
 
 export const Route = createFileRoute("/arena")({
   head: () => ({ meta: [{ title: "ساحة الأوتاكو — أوتاكو" }] }),
   component: ArenaPage,
 });
 
-type RoomId = "ja" | "other";
+type RoomId = "ja" | "en" | "other";
 
 interface RoomCard {
   id: RoomId;
@@ -29,10 +30,18 @@ const ROOMS: RoomCard[] = [
     available: true,
   },
   {
+    id: "en",
+    flag: "🇬🇧",
+    title: "الإنجليزية",
+    desc: "مفردات · قواعد · محادثات · IELTS",
+    color: "#3498DB",
+    available: true,
+  },
+  {
     id: "other",
     flag: "🌐",
     title: "غرف أخرى",
-    desc: "قريباً — الإنجليزية، الكورية، العربية…",
+    desc: "قريباً — الكورية، العربية، الصينية…",
     color: "#4ECDC4",
     available: false,
   },
@@ -41,7 +50,7 @@ const ROOMS: RoomCard[] = [
 function ArenaPage() {
   const [active, setActive] = useState<RoomId | null>(null);
 
-  if (active === "ja") {
+  if (active === "ja" || active === "en") {
     return (
       <div dir="rtl" className="pb-24">
         <div className="sticky top-0 z-20 border-b border-white/10 bg-[#0a0a1a]/80 backdrop-blur">
@@ -56,10 +65,11 @@ function ArenaPage() {
             </button>
           </div>
         </div>
-        <JapaneseRoom />
+        {active === "ja" ? <JapaneseRoom /> : <EnglishRoom />}
       </div>
     );
   }
+
 
   return (
     <div
