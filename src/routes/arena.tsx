@@ -50,7 +50,7 @@ const ROOMS: RoomCard[] = [
 function ArenaPage() {
   const [active, setActive] = useState<RoomId | null>(null);
 
-  if (active === "ja") {
+  if (active === "ja" || active === "en") {
     return (
       <div dir="rtl" className="pb-24">
         <div className="sticky top-0 z-20 border-b border-white/10 bg-[#0a0a1a]/80 backdrop-blur">
@@ -65,10 +65,11 @@ function ArenaPage() {
             </button>
           </div>
         </div>
-        <JapaneseRoom />
+        {active === "ja" ? <JapaneseRoom /> : <EnglishRoom />}
       </div>
     );
   }
+
 
   return (
     <div
