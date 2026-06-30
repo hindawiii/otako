@@ -3,13 +3,14 @@ import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { JapaneseRoom } from "@/components/rooms/JapaneseRoom";
 import { EnglishRoom } from "@/components/rooms/EnglishRoom";
+import { ArabicRoom } from "@/components/rooms/ArabicRoom";
 
 export const Route = createFileRoute("/arena")({
   head: () => ({ meta: [{ title: "ساحة الأوتاكو — أوتاكو" }] }),
   component: ArenaPage,
 });
 
-type RoomId = "ja" | "en" | "other";
+type RoomId = "ja" | "en" | "ar" | "other";
 
 interface RoomCard {
   id: RoomId;
@@ -38,10 +39,18 @@ const ROOMS: RoomCard[] = [
     available: true,
   },
   {
+    id: "ar",
+    flag: "🇸🇦",
+    title: "العربية الفصحى",
+    desc: "مفردات · نحو · بلاغة · إعراب",
+    color: "#27AE60",
+    available: true,
+  },
+  {
     id: "other",
     flag: "🌐",
     title: "غرف أخرى",
-    desc: "قريباً — الكورية، العربية، الصينية…",
+    desc: "قريباً — الكورية، الصينية، الفرنسية…",
     color: "#4ECDC4",
     available: false,
   },
@@ -50,7 +59,7 @@ const ROOMS: RoomCard[] = [
 function ArenaPage() {
   const [active, setActive] = useState<RoomId | null>(null);
 
-  if (active === "ja" || active === "en") {
+  if (active === "ja" || active === "en" || active === "ar") {
     return (
       <div dir="rtl" className="pb-24">
         <div className="sticky top-0 z-20 border-b border-white/10 bg-[#0a0a1a]/80 backdrop-blur">
@@ -65,7 +74,7 @@ function ArenaPage() {
             </button>
           </div>
         </div>
-        {active === "ja" ? <JapaneseRoom /> : <EnglishRoom />}
+        {active === "ja" ? <JapaneseRoom /> : active === "en" ? <EnglishRoom /> : <ArabicRoom />}
       </div>
     );
   }
