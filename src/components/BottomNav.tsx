@@ -1,18 +1,13 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { MessageCircle, Home, User } from "lucide-react";
-import { GiftGameIcon } from "@/components/icons/GiftGameIcon";
-import { MangaBookIcon } from "@/components/icons/MangaBookIcon";
 import { useAuth } from "@/lib/auth-context";
 
 // Visual order under dir="rtl": FIRST item appears on the RIGHT.
-// Required order from RIGHT → LEFT:
-//   1) الرسائل   2) ساحة الأوتاكو   3) الهدايا والألعاب   4) المانجا والأنمي   5) ملف الأوتاكو
+// Order from RIGHT → LEFT: الرسائل · ساحة الأوتاكو · ملف الأوتاكو
 const ITEMS = [
   { to: "/chat", label: "الرسائل", Icon: MessageCircle },
   { to: "/arena", label: "ساحة الأوتاكو", Icon: Home },
-  { to: "/gifts-manga", label: "الهدايا والألعاب", Icon: GiftGameIcon },
-  { to: "/anime-manga", label: "المانجا والأنمي", Icon: MangaBookIcon },
   { to: "/profile", label: "ملف الأوتاكو", Icon: User },
 ] as const;
 

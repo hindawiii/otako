@@ -24,7 +24,7 @@ function RewardsPage() {
           </div>
           <div className="mt-6">
             <Button asChild variant="secondary">
-              <Link to="/gifts-manga">العودة للهدايا والمانجا</Link>
+              <Link to="/arena">العودة للساحة</Link>
             </Button>
           </div>
         </Card>

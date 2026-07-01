@@ -4,7 +4,7 @@ export const Route = createFileRoute("/")({
   component: IndexRedirect,
 });
 
-const VALID = ["/chat", "/arena", "/gifts-manga", "/anime-manga", "/profile"] as const;
+const VALID = ["/chat", "/arena", "/profile"] as const;
 type Valid = (typeof VALID)[number];
 
 function IndexRedirect() {

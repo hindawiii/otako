@@ -74,9 +74,6 @@ export function GiftPicker({ open, onOpenChange, userId, onPick }: Props) {
                 <GiftIcon className="h-7 w-7 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">حقيبتك فارغة!</p>
-              <Button asChild size="sm" className="bg-gradient-primary text-primary-foreground shadow-neon">
-                <Link to="/gifts-manga">اذهب للمتجر</Link>
-              </Button>
             </div>
           ) : (
             (() => {
