@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { GiftCard, type GiftCardData } from "@/components/GiftCard";
 import { Button } from "@/components/ui/button";
 import { Loader2, Gift as GiftIcon } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+
 import type { Arc, Rarity } from "@/lib/gift-utils";
 import { ARC_LABELS } from "@/lib/gift-utils";
 
