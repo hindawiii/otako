@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation, useRouter } from "@tanstack/react-router";
-import { Gift, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { SettingsSheet } from "@/components/settings-sheet";
@@ -9,8 +9,6 @@ const ROOT_PAGES: Record<string, string> = {
   "/": "أوتاكو",
   "/arena": "ساحة الأوتاكو",
   "/chat": "الرسائل",
-  "/gifts-manga": "الهدايا والألعاب",
-  "/anime-manga": "المانجا والأنمي",
   "/profile": "ملف الأوتاكو",
 };
 
@@ -67,9 +65,6 @@ export function AppHeader() {
 
         {user && (
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" asChild aria-label="الهدايا والألعاب">
-              <Link to="/gifts-manga"><Gift className="h-5 w-5 text-accent" /></Link>
-            </Button>
             <SettingsSheet />
           </div>
         )}

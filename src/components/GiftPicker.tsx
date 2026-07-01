@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { GiftCard, type GiftCardData } from "@/components/GiftCard";
 import { Button } from "@/components/ui/button";
 import { Loader2, Gift as GiftIcon } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+
 import type { Arc, Rarity } from "@/lib/gift-utils";
 import { ARC_LABELS } from "@/lib/gift-utils";
 
@@ -74,9 +74,6 @@ export function GiftPicker({ open, onOpenChange, userId, onPick }: Props) {
                 <GiftIcon className="h-7 w-7 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">حقيبتك فارغة!</p>
-              <Button asChild size="sm" className="bg-gradient-primary text-primary-foreground shadow-neon">
-                <Link to="/gifts-manga">اذهب للمتجر</Link>
-              </Button>
             </div>
           ) : (
             (() => {

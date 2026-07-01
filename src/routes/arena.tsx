@@ -4,13 +4,15 @@ import { ArrowRight } from "lucide-react";
 import { JapaneseRoom } from "@/components/rooms/JapaneseRoom";
 import { EnglishRoom } from "@/components/rooms/EnglishRoom";
 import { ArabicRoom } from "@/components/rooms/ArabicRoom";
+import { WelcomeRoom } from "@/components/rooms/WelcomeRoom";
+import { DrawingRoom } from "@/components/rooms/DrawingRoom";
 
 export const Route = createFileRoute("/arena")({
   head: () => ({ meta: [{ title: "ساحة الأوتاكو — أوتاكو" }] }),
   component: ArenaPage,
 });
 
-type RoomId = "ja" | "en" | "ar" | "other";
+type RoomId = "welcome" | "ja" | "en" | "ar" | "draw" | "other";
 
 interface RoomCard {
   id: RoomId;
@@ -22,6 +24,14 @@ interface RoomCard {
 }
 
 const ROOMS: RoomCard[] = [
+  {
+    id: "welcome",
+    flag: "🎌",
+    title: "الاستقبال",
+    desc: "دليل · اختبار المستوى · قواعد · تعريف",
+    color: "#FF6B6B",
+    available: true,
+  },
   {
     id: "ja",
     flag: "🇯🇵",
@@ -47,6 +57,14 @@ const ROOMS: RoomCard[] = [
     available: true,
   },
   {
+    id: "draw",
+    flag: "🎨",
+    title: "الرسم",
+    desc: "دروس · معرض · تحديات · مستواك",
+    color: "#9B59B6",
+    available: true,
+  },
+  {
     id: "other",
     flag: "🌐",
     title: "غرف أخرى",
@@ -59,7 +77,15 @@ const ROOMS: RoomCard[] = [
 function ArenaPage() {
   const [active, setActive] = useState<RoomId | null>(null);
 
-  if (active === "ja" || active === "en" || active === "ar") {
+  const activeRoom =
+    active === "welcome" ? <WelcomeRoom /> :
+    active === "ja" ? <JapaneseRoom /> :
+    active === "en" ? <EnglishRoom /> :
+    active === "ar" ? <ArabicRoom /> :
+    active === "draw" ? <DrawingRoom /> :
+    null;
+
+  if (activeRoom) {
     return (
       <div dir="rtl" className="pb-24">
         <div className="sticky top-0 z-20 border-b border-white/10 bg-[#0a0a1a]/80 backdrop-blur">
@@ -74,11 +100,10 @@ function ArenaPage() {
             </button>
           </div>
         </div>
-        {active === "ja" ? <JapaneseRoom /> : active === "en" ? <EnglishRoom /> : <ArabicRoom />}
+        {activeRoom}
       </div>
     );
   }
-
 
   return (
     <div
